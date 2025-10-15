@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npm install:*)",
+      "Bash(npx husky:*)",
+      "Bash(git init:*)",
+      "Bash(npm run prepare:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(find:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(node:*)",
+      "Bash(taskkill:*)",
+      "Bash(start http://localhost:3000)",
+      "Bash(npx ts-node:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
