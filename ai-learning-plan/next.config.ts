@@ -1,21 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 生产环境优化
+  // 基础配置
   reactStrictMode: true,
-  swcMinify: true,
-
-  // 图片优化
-  images: {
-    domains: ['localhost'],
-  },
 
   // 构建优化
   eslint: {
-    ignoreDuringBuilds: true, // 部署时忽略ESLint错误
-  },
-  typescript: {
-    ignoreBuildErrors: false, // 保持类型检查
+    ignoreDuringBuilds: true,
   },
 
   // 环境变量
