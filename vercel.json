@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "ai-learning-plan/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "builds": [
+    {
+      "src": "ai-learning-plan/package.json",
+      "use": "@vercel/next"
+    }
+  ]
+}

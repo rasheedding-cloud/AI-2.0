@@ -12,5 +12,11 @@
     "env": {
       "NEXT_PUBLIC_APP_URL": "https://your-app-url.vercel.app"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
+    }
+  ]
 }
