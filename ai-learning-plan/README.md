@@ -1,4 +1,8 @@
+# AI Learning Plan - Vercel Deployment
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+🚀 **Recently deployed to Vercel with optimized configuration!**
 
 ## Getting Started
 
