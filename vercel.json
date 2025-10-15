@@ -1,7 +1,3 @@
 {
-  "buildCommand": "cd ai-learning-plan && npm run build",
-  "outputDirectory": "ai-learning-plan/.next",
-  "installCommand": "cd ai-learning-plan && npm install",
-  "framework": "nextjs",
-  "rootDirectory": "ai-learning-plan"
+  "framework": "nextjs"
 }
