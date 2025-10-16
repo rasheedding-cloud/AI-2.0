@@ -129,12 +129,52 @@ export class MockAdapter implements LLMAdapter {
       return mockResponse as TOut;
     }
 
-    // Default mock response
-    const defaultResponse = {
-      success: false,
-      error: 'No mock response configured',
-      prompt: opts.prompt.substring(0, 50) + '...',
-    };
+    // Default mock response that looks like AI-generated JSON
+    const defaultResponse = `{
+  "months_total": 4,
+  "milestones": [
+    {
+      "month": 1,
+      "max_target_band": "A2+",
+      "focus": ["基础问候与自我介绍", "日常对话练习", "简单语法学习", "词汇积累"],
+      "assessment_gate": {
+        "accuracy": 0.85,
+        "task_steps": 3,
+        "fluency_pauses": 2
+      }
+    },
+    {
+      "month": 2,
+      "max_target_band": "A2+",
+      "focus": ["兴趣爱好讨论", "观点表达", "时态练习", "听力理解"],
+      "assessment_gate": {
+        "accuracy": 0.80,
+        "task_steps": 4,
+        "fluency_pauses": 3
+      }
+    },
+    {
+      "month": 3,
+      "max_target_band": "B1-",
+      "focus": ["复杂话题讨论", "情感表达", "条件句使用", "阅读理解"],
+      "assessment_gate": {
+        "accuracy": 0.75,
+        "task_steps": 5,
+        "fluency_pauses": 4
+      }
+    },
+    {
+      "month": 4,
+      "max_target_band": "B1-",
+      "focus": ["流利对话练习", "文化理解", "商务英语基础", "综合应用"],
+      "assessment_gate": {
+        "accuracy": 0.70,
+        "task_steps": 6,
+        "fluency_pauses": 5
+      }
+    }
+  ]
+}`;
 
     return defaultResponse as TOut;
   }
