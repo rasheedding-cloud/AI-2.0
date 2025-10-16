@@ -58,7 +58,7 @@ ${Array.from({ length: monthsTotal }, (_, i) => {
 }).join('\n')}
   ]
 }
-\`\`\``
+\`\`\`
 
 TASK: Produce a MonthlyPlan with DYNAMIC caps based on start_band × target_band × total weeks.
 
