@@ -278,22 +278,36 @@ export default function PlanDetailPage() {
         // 保存选中的方案数据
         setSelectedPlan(planData);
 
-        console.log('加载方案详情:', { planData, intakeData });
+        console.log('=== 开始加载方案详情 ===');
+        console.log('方案数据:', planData);
+        console.log('用户数据:', intakeData);
 
         // 强制清除旧的缓存数据，确保重新生成
         const expectedMonths = Math.max(1, Math.min(12, Math.ceil((planData?.weeks || 8) / 4)));
-        console.log('预期月数:', expectedMonths, '方案周数:', planData?.weeks);
+        console.log('=== 月数计算 ===');
+        console.log('预期月数:', expectedMonths);
+        console.log('方案周数:', planData?.weeks);
+        console.log('方案tier:', planData?.tier);
+        console.log('方案track:', planData?.track);
 
         // 无条件清除缓存，确保重新生成正确数据
         localStorage.removeItem('monthlyPlan');
         localStorage.removeItem('syllabus');
-        console.log('已清除缓存，将重新生成月度计划');
+        console.log('=== 已清除缓存 ===');
 
         // 临时直接使用动态生成的数据，避免API超时问题
-        console.log('直接生成月度计划，避免API超时...');
-        const dynamicMockPlan = generateMockMonthlyPlan(planData);
-        console.log('生成的月度计划:', dynamicMockPlan);
-        setMonthlyPlan(dynamicMockPlan);
+        console.log('=== 开始生成月度计划 ===');
+        try {
+          const dynamicMockPlan = generateMockMonthlyPlan(planData);
+          console.log('生成的月度计划:', JSON.stringify(dynamicMockPlan, null, 2));
+          console.log('月度计划月数:', dynamicMockPlan.months_total);
+          console.log('月度计划里程碑数量:', dynamicMockPlan.milestones.length);
+
+          setMonthlyPlan(dynamicMockPlan);
+          console.log('=== setMonthlyPlan 已调用 ===');
+        } catch (error) {
+          console.error('生成月度计划失败:', error);
+        }
 
         // 如果需要API，可以在这里异步调用（不阻塞页面显示）
         // generateMonthlyPlanAsync(planData, intakeData, expectedMonths);
