@@ -280,26 +280,14 @@ export default function PlanDetailPage() {
 
         console.log('加载方案详情:', { planData, intakeData });
 
-        // 清除可能存在的旧缓存数据，确保使用最新的月度计划
+        // 强制清除旧的缓存数据，确保重新生成
         const expectedMonths = Math.max(1, Math.min(12, Math.ceil((planData?.weeks || 8) / 4)));
-        const cachedMonthlyPlan = localStorage.getItem('monthlyPlan');
-        if (cachedMonthlyPlan) {
-          try {
-            const cachedData = JSON.parse(cachedMonthlyPlan);
-            if (cachedData.months_total !== expectedMonths) {
-              console.log('清除缓存的不同月份数据:', {
-                cached: cachedData.months_total,
-                expected: expectedMonths
-              });
-              localStorage.removeItem('monthlyPlan');
-              localStorage.removeItem('syllabus');
-            }
-          } catch (e) {
-            console.warn('解析缓存的月度计划失败，清除缓存');
-            localStorage.removeItem('monthlyPlan');
-            localStorage.removeItem('syllabus');
-          }
-        }
+        console.log('预期月数:', expectedMonths, '方案周数:', planData?.weeks);
+
+        // 无条件清除缓存，确保重新生成正确数据
+        localStorage.removeItem('monthlyPlan');
+        localStorage.removeItem('syllabus');
+        console.log('已清除缓存，将重新生成月度计划');
 
         // 调用API生成月度计划
         console.log('正在生成月度计划...');
@@ -322,7 +310,18 @@ export default function PlanDetailPage() {
         }
 
         console.log('月度计划生成成功:', monthlyResult.data);
-        setMonthlyPlan(monthlyResult.data);
+
+        // 验证返回的月份数据是否正确
+        if (monthlyResult.data.months_total !== expectedMonths) {
+          console.warn('API返回的月数不正确，使用动态生成数据:', {
+            returned: monthlyResult.data.months_total,
+            expected: expectedMonths
+          });
+          const dynamicMockPlan = generateMockMonthlyPlan(planData);
+          setMonthlyPlan(dynamicMockPlan);
+        } else {
+          setMonthlyPlan(monthlyResult.data);
+        }
 
         // 调用API生成首月课程大纲
         console.log('正在生成首月课程大纲...');
