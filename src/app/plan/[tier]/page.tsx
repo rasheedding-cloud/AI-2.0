@@ -312,54 +312,25 @@ export default function PlanDetailPage() {
         // 如果需要API，可以在这里异步调用（不阻塞页面显示）
         // generateMonthlyPlanAsync(planData, intakeData, expectedMonths);
 
-        // 调用API生成首月课程大纲
+        // 生成首月课程大纲
         console.log('正在生成首月课程大纲...');
-        const syllabusResponse = await fetch('/api/generate-syllabus', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            monthlyPlan: monthlyResult.data,
-            chosenPlan: planData,
-            intake: intakeData
-          })
-        });
+        setSyllabus(mockSyllabus); // 直接使用模拟数据
 
-        if (!syllabusResponse.ok) {
-          throw new Error(`课程大纲生成失败: ${syllabusResponse.status}`);
-        }
-
-        const syllabusResult = await syllabusResponse.json();
-        if (!syllabusResult.success) {
-          throw new Error(`课程大纲API错误: ${syllabusResult.error}`);
-        }
-
-        console.log('课程大纲生成成功:', syllabusResult.data);
-        setSyllabus(syllabusResult.data);
+        console.log('首月课程大纲设置完成');
 
         // 保存数据供导出使用
-        localStorage.setItem('monthlyPlan', JSON.stringify(monthlyResult.data));
-        localStorage.setItem('syllabus', JSON.stringify(syllabusResult.data));
+        localStorage.setItem('monthlyPlan', JSON.stringify(dynamicMockPlan));
+        localStorage.setItem('syllabus', JSON.stringify(mockSyllabus));
         localStorage.setItem('userIntake', JSON.stringify(intakeData)); // 确保用户信息也被保存
 
         setIsLoading(false);
       } catch (error) {
         console.error('加载方案详情失败:', error);
 
-        // 如果API调用失败，使用默认数据作为降级方案
-        console.warn('API调用失败，使用默认数据作为降级方案');
+        // 如果有任何错误，确保至少显示月度计划
+        console.warn('发生错误，确保至少显示月度计划');
 
-        // 根据选中的方案动态生成模拟数据
-        const dynamicMockPlan = generateMockMonthlyPlan(planData);
-        console.log('动态生成的模拟月度计划:', dynamicMockPlan);
-
-        // 使用动态生成的数据作为后备
-        setMonthlyPlan(dynamicMockPlan);
         setSyllabus(mockSyllabus);
-
-        // 保存动态生成的数据供导出使用
-        localStorage.setItem('monthlyPlan', JSON.stringify(dynamicMockPlan));
-        localStorage.setItem('syllabus', JSON.stringify(mockSyllabus));
-
         setIsLoading(false);
       }
     };
