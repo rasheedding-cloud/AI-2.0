@@ -37,7 +37,7 @@ export interface PlanOption {
 }
 
 export interface MonthlyMilestone {
-  month: 1 | 2 | 3 | 4;
+  month: number; // 动态月份，1-12
   max_target_band: DifficultyBand; // M1 A2+, M2 A2+, M3 B1-, M4 B1
   focus: string[]; // 3–6 条
   assessment_gate: {
@@ -48,7 +48,7 @@ export interface MonthlyMilestone {
 }
 
 export interface MonthlyPlan {
-  months_total: 4; // 固定 4
+  months_total: number; // 动态月数，1-12
   milestones: MonthlyMilestone[];
 }
 

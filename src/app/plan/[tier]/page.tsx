@@ -18,7 +18,7 @@ interface MonthlyMilestone {
 }
 
 interface MonthlyPlan {
-  months_total: 4;
+  months_total: number;
   milestones: MonthlyMilestone[];
 }
 
@@ -279,6 +279,27 @@ export default function PlanDetailPage() {
         setSelectedPlan(planData);
 
         console.log('加载方案详情:', { planData, intakeData });
+
+        // 清除可能存在的旧缓存数据，确保使用最新的月度计划
+        const expectedMonths = Math.max(1, Math.min(12, Math.ceil((planData?.weeks || 8) / 4)));
+        const cachedMonthlyPlan = localStorage.getItem('monthlyPlan');
+        if (cachedMonthlyPlan) {
+          try {
+            const cachedData = JSON.parse(cachedMonthlyPlan);
+            if (cachedData.months_total !== expectedMonths) {
+              console.log('清除缓存的不同月份数据:', {
+                cached: cachedData.months_total,
+                expected: expectedMonths
+              });
+              localStorage.removeItem('monthlyPlan');
+              localStorage.removeItem('syllabus');
+            }
+          } catch (e) {
+            console.warn('解析缓存的月度计划失败，清除缓存');
+            localStorage.removeItem('monthlyPlan');
+            localStorage.removeItem('syllabus');
+          }
+        }
 
         // 调用API生成月度计划
         console.log('正在生成月度计划...');
