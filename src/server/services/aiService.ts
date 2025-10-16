@@ -460,45 +460,50 @@ class AIService {
   // 修复月度计划数据
   private fixMonthlyPlan(monthlyPlan: any): any {
     // 创建新的月度计划对象，只包含允许的字段
+    let monthsTotal = monthlyPlan.months_total || 4;
+
+    // 确保月数在合理范围内（1-12个月）
+    monthsTotal = Math.max(1, Math.min(12, monthsTotal));
+
     const cleanedPlan: any = {
-      months_total: 4,
+      months_total: monthsTotal,
       milestones: []
     };
 
-    // 确保有4个月的里程碑
+    // 确保有里程碑数组
     if (!monthlyPlan.milestones || !Array.isArray(monthlyPlan.milestones)) {
       monthlyPlan.milestones = [];
     }
 
-    // 如果里程碑不足4个，创建默认的里程碑
-    while (monthlyPlan.milestones.length < 4) {
+    // 如果里程碑不足指定月数，创建默认的里程碑
+    while (monthlyPlan.milestones.length < monthsTotal) {
       const monthNum = monthlyPlan.milestones.length + 1;
       monthlyPlan.milestones.push({
         month: monthNum,
-        max_target_band: monthNum === 1 ? "A2+" : monthNum === 2 ? "A2+" : monthNum === 3 ? "B1-" : "B1",
+        max_target_band: this.getTargetBandForMonth(monthNum),
         focus: [
-          `第${monthNum}月核心技能${monthNum === 1 ? 1 : ''}`,
-          `第${monthNum}月核心技能${monthNum === 1 ? 2 : ''}`,
-          `第${monthNum}月核心技能${monthNum === 1 ? 3 : ''}`,
-          `第${monthNum}月核心技能${monthNum === 1 ? 4 : ''}`
+          `第${monthNum}月核心技能1`,
+          `第${monthNum}月核心技能2`,
+          `第${monthNum}月核心技能3`,
+          `第${monthNum}月核心技能4`
         ],
         assessment_gate: {
-          accuracy: monthNum === 1 ? 0.85 : monthNum === 2 ? 0.80 : monthNum === 3 ? 0.75 : 0.70,
-          task_steps: monthNum === 1 ? 3 : monthNum === 2 ? 4 : monthNum === 3 ? 5 : 6,
-          fluency_pauses: monthNum === 1 ? 2 : monthNum === 2 ? 3 : monthNum === 3 ? 4 : 5
+          accuracy: this.getAccuracyForMonth(monthNum),
+          task_steps: this.getTaskStepsForMonth(monthNum),
+          fluency_pauses: this.getFluencyPausesForMonth(monthNum)
         }
       });
     }
 
-    // 如果里程碑超过4个，截取前4个
-    if (monthlyPlan.milestones.length > 4) {
-      monthlyPlan.milestones = monthlyPlan.milestones.slice(0, 4);
+    // 如果里程碑超过指定月数，截取到指定月数
+    if (monthlyPlan.milestones.length > monthsTotal) {
+      monthlyPlan.milestones = monthlyPlan.milestones.slice(0, monthsTotal);
     }
 
     // 确保每个月的月份编号正确并添加到清理后的计划中
     cleanedPlan.milestones = monthlyPlan.milestones.map((milestone: any, index: number) => ({
       month: index + 1,
-      max_target_band: milestone.max_target_band || (index === 0 ? "A2+" : index === 1 ? "A2+" : index === 2 ? "B1-" : "B1"),
+      max_target_band: milestone.max_target_band || this.getTargetBandForMonth(index + 1),
       focus: Array.isArray(milestone.focus) && milestone.focus.length >= 3 ? milestone.focus.slice(0, 6) : [
         `第${index + 1}月核心技能1`,
         `第${index + 1}月核心技能2`,
@@ -506,13 +511,45 @@ class AIService {
         `第${index + 1}月核心技能4`
       ],
       assessment_gate: {
-        accuracy: milestone.assessment_gate?.accuracy || (index === 0 ? 0.85 : index === 1 ? 0.80 : index === 2 ? 0.75 : 0.70),
-        task_steps: milestone.assessment_gate?.task_steps || (index === 0 ? 3 : index === 1 ? 4 : index === 2 ? 5 : 6),
-        fluency_pauses: milestone.assessment_gate?.fluency_pauses || (index === 0 ? 2 : index === 1 ? 3 : index === 2 ? 4 : 5)
+        accuracy: milestone.assessment_gate?.accuracy || this.getAccuracyForMonth(index + 1),
+        task_steps: milestone.assessment_gate?.task_steps || this.getTaskStepsForMonth(index + 1),
+        fluency_pauses: milestone.assessment_gate?.fluency_pauses || this.getFluencyPausesForMonth(index + 1)
       }
     }));
 
     return cleanedPlan;
+  }
+
+  // 根据月份获取目标难度等级
+  private getTargetBandForMonth(monthNum: number): string {
+    if (monthNum === 1) return "A2+";
+    if (monthNum === 2) return "A2+";
+    if (monthNum === 3) return "B1-";
+    return "B1";
+  }
+
+  // 根据月份获取准确率要求
+  private getAccuracyForMonth(monthNum: number): number {
+    if (monthNum === 1) return 0.85;
+    if (monthNum === 2) return 0.80;
+    if (monthNum === 3) return 0.75;
+    return 0.70;
+  }
+
+  // 根据月份获取任务步骤数
+  private getTaskStepsForMonth(monthNum: number): number {
+    if (monthNum === 1) return 3;
+    if (monthNum === 2) return 4;
+    if (monthNum === 3) return 5;
+    return 6;
+  }
+
+  // 根据月份获取停顿次数
+  private getFluencyPausesForMonth(monthNum: number): number {
+    if (monthNum === 1) return 2;
+    if (monthNum === 2) return 3;
+    if (monthNum === 3) return 4;
+    return 5;
   }
 
   // 生成三档学习方案

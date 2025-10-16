@@ -15,6 +15,9 @@ export const createGenerateMonthlyPrompt = (
 
   const { goal_free_text, cultural_mode } = intake;
 
+  // 根据周数计算月数（每4周为1个月，最少1个月，最多12个月）
+  const monthsTotal = Math.max(1, Math.min(12, Math.ceil(weeks / 4)));
+
   return `请基于选定的学习方案，生成${weeks}周详细的月度计划：
 
 ## 选定方案信息
@@ -22,60 +25,40 @@ export const createGenerateMonthlyPrompt = (
 - **学习轨道**：${track}
 - **学习强度**：每日${daily_minutes}分钟，每周${days_per_week}天
 - **总周期**：${weeks}周
+- **对应月份**：${monthsTotal}个月
 - **预计完成**：${finish_date_est}
 - **学习目标**：${goal_free_text}
 - **文化模式**：${cultural_mode}
 
 ## 输出要求
-请返回严格的JSON格式：
+请返回严格的JSON格式，必须生成${monthsTotal}个月的数据：
 
 \`\`\`json
 {
-  "months_total": 4,
+  "months_total": ${monthsTotal},
   "milestones": [
-    {
-      "month": 1,
-      "max_target_band": "A2+",
+${Array.from({ length: monthsTotal }, (_, i) => {
+  const monthNum = i + 1;
+  const isMonth1or2 = monthNum <= 2;
+  const targetBand = isMonth1or2 ? "A2+" : monthNum === 3 ? "B1-" : "B1";
+  const accuracy = monthNum === 1 ? 0.85 : monthNum === 2 ? 0.80 : monthNum === 3 ? 0.75 : 0.70;
+  const taskSteps = monthNum === 1 ? 3 : monthNum === 2 ? 4 : monthNum === 3 ? 5 : 6;
+  const fluencyPauses = monthNum === 1 ? 2 : monthNum === 2 ? 3 : monthNum === 3 ? 4 : 5;
+
+  return `    {
+      "month": ${monthNum},
+      "max_target_band": "${targetBand}",
       "focus": ["重点1", "重点2", "重点3", "重点4"],
       "assessment_gate": {
-        "accuracy": 0.85,
-        "task_steps": 3,
-        "fluency_pauses": 2
+        "accuracy": ${accuracy},
+        "task_steps": ${taskSteps},
+        "fluency_pauses": ${fluencyPauses}
       }
-    },
-    {
-      "month": 2,
-      "max_target_band": "A2+",
-      "focus": ["重点1", "重点2", "重点3", "重点4"],
-      "assessment_gate": {
-        "accuracy": 0.80,
-        "task_steps": 4,
-        "fluency_pauses": 3
-      }
-    },
-    {
-      "month": 3,
-      "max_target_band": "B1-",
-      "focus": ["重点1", "重点2", "重点3", "重点4"],
-      "assessment_gate": {
-        "accuracy": 0.75,
-        "task_steps": 5,
-        "fluency_pauses": 4
-      }
-    },
-    {
-      "month": 4,
-      "max_target_band": "B1",
-      "focus": ["重点1", "重点2", "重点3", "重点4"],
-      "assessment_gate": {
-        "accuracy": 0.70,
-        "task_steps": 6,
-        "fluency_pauses": 5
-      }
-    }
+    }${monthNum < monthsTotal ? ',' : ''}`;
+}).join('\n')}
   ]
 }
-\`\`\`
+\`\`\``
 
 TASK: Produce a MonthlyPlan with DYNAMIC caps based on start_band × target_band × total weeks.
 

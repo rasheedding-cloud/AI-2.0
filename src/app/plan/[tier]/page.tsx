@@ -56,47 +56,50 @@ export default function PlanDetailPage() {
 
   const tier = params.tier as string;
 
-  // 模拟数据
-  const mockMonthlyPlan: MonthlyPlan = {
-    months_total: 4,
-    milestones: [
-      {
-        month: 1,
-        focus: ['建立基础职场词汇', '掌握简单对话技巧', '学习基本邮件格式', '培养英语思维习惯'],
-        assessment_gate: {
-          accuracy: 0.85,
-          task_steps: 3,
-          fluency_pauses: 2
-        }
-      },
-      {
-        month: 2,
-        focus: ['提升商务词汇量', '熟练运用时态', '改进发音语调', '增加口语流利度'],
-        assessment_gate: {
-          accuracy: 0.80,
-          task_steps: 4,
-          fluency_pauses: 3
-        }
-      },
-      {
-        month: 3,
-        focus: ['掌握商务谈判技巧', '学会会议发言', '提高写作水平', '增强跨文化沟通'],
-        assessment_gate: {
-          accuracy: 0.75,
-          task_steps: 5,
-          fluency_pauses: 4
-        }
-      },
-      {
-        month: 4,
-        focus: ['完善商务演讲能力', '熟练处理复杂业务', '达到职场自信交流', '建立长期学习习惯'],
-        assessment_gate: {
-          accuracy: 0.70,
-          task_steps: 6,
-          fluency_pauses: 5
-        }
+  // 动态生成模拟数据
+  const generateMockMonthlyPlan = (plan: any): MonthlyPlan => {
+    // 根据方案计算月数（默认2个月，对应8周）
+    const monthsTotal = Math.max(1, Math.min(12, Math.ceil((plan?.weeks || 8) / 4)));
+
+    const milestones = [];
+    for (let month = 1; month <= monthsTotal; month++) {
+      let focus: string[];
+
+      if (plan?.track === 'work') {
+        focus = month === 1 ?
+          ['建立基础职场词汇', '掌握简单对话技巧', '学习基本邮件格式', '培养英语思维习惯'] :
+          month === 2 ?
+          ['提升商务词汇量', '熟练运用时态', '改进发音语调', '增加口语流利度'] :
+          ['掌握高级商务技能', '完善职场沟通能力', '增强跨文化交流', '建立专业形象'];
+      } else if (plan?.track === 'travel') {
+        focus = month === 1 ?
+          ['基础旅行问候', '学习问路指路', '掌握点餐用语', '了解交通表达'] :
+          month === 2 ?
+          ['提升对话流利度', '学习复杂场景', '增强文化理解', '练习应急表达'] :
+          ['完善旅行技能', '深度文化交流', '自如应对各种情况', '享受旅行体验'];
+      } else {
+        focus = month === 1 ?
+          ['建立基础词汇', '掌握简单对话', '学习基本语法', '培养学习习惯'] :
+          month === 2 ?
+          ['提升词汇量', '熟练运用时态', '改进表达能力', '增加交流信心'] :
+          ['掌握高级技能', '完善沟通能力', '增强语言流利度', '建立长期学习习惯'];
       }
-    ]
+
+      milestones.push({
+        month,
+        focus,
+        assessment_gate: {
+          accuracy: month === 1 ? 0.85 : month === 2 ? 0.80 : 0.75,
+          task_steps: month === 1 ? 3 : month === 2 ? 4 : 5,
+          fluency_pauses: month === 1 ? 2 : month === 2 ? 3 : 4
+        }
+      });
+    }
+
+    return {
+      months_total: monthsTotal,
+      milestones
+    };
   };
 
   const mockSyllabus: FirstMonthSyllabus = {
@@ -336,12 +339,16 @@ export default function PlanDetailPage() {
         // 如果API调用失败，使用默认数据作为降级方案
         console.warn('API调用失败，使用默认数据作为降级方案');
 
-        // 使用默认数据作为后备
-        setMonthlyPlan(mockMonthlyPlan);
+        // 根据选中的方案动态生成模拟数据
+        const dynamicMockPlan = generateMockMonthlyPlan(planData);
+        console.log('动态生成的模拟月度计划:', dynamicMockPlan);
+
+        // 使用动态生成的数据作为后备
+        setMonthlyPlan(dynamicMockPlan);
         setSyllabus(mockSyllabus);
 
-        // 保存默认数据供导出使用
-        localStorage.setItem('monthlyPlan', JSON.stringify(mockMonthlyPlan));
+        // 保存动态生成的数据供导出使用
+        localStorage.setItem('monthlyPlan', JSON.stringify(dynamicMockPlan));
         localStorage.setItem('syllabus', JSON.stringify(mockSyllabus));
 
         setIsLoading(false);
