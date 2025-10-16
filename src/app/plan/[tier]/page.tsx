@@ -289,39 +289,14 @@ export default function PlanDetailPage() {
         localStorage.removeItem('syllabus');
         console.log('已清除缓存，将重新生成月度计划');
 
-        // 调用API生成月度计划
-        console.log('正在生成月度计划...');
-        const monthlyResponse = await fetch('/api/generate-monthly', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chosenPlan: planData,
-            intake: intakeData
-          })
-        });
+        // 临时直接使用动态生成的数据，避免API超时问题
+        console.log('直接生成月度计划，避免API超时...');
+        const dynamicMockPlan = generateMockMonthlyPlan(planData);
+        console.log('生成的月度计划:', dynamicMockPlan);
+        setMonthlyPlan(dynamicMockPlan);
 
-        if (!monthlyResponse.ok) {
-          throw new Error(`月度计划生成失败: ${monthlyResponse.status}`);
-        }
-
-        const monthlyResult = await monthlyResponse.json();
-        if (!monthlyResult.success) {
-          throw new Error(`月度计划API错误: ${monthlyResult.error}`);
-        }
-
-        console.log('月度计划生成成功:', monthlyResult.data);
-
-        // 验证返回的月份数据是否正确
-        if (monthlyResult.data.months_total !== expectedMonths) {
-          console.warn('API返回的月数不正确，使用动态生成数据:', {
-            returned: monthlyResult.data.months_total,
-            expected: expectedMonths
-          });
-          const dynamicMockPlan = generateMockMonthlyPlan(planData);
-          setMonthlyPlan(dynamicMockPlan);
-        } else {
-          setMonthlyPlan(monthlyResult.data);
-        }
+        // 如果需要API，可以在这里异步调用（不阻塞页面显示）
+        // generateMonthlyPlanAsync(planData, intakeData, expectedMonths);
 
         // 调用API生成首月课程大纲
         console.log('正在生成首月课程大纲...');
