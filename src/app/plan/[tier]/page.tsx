@@ -19,6 +19,14 @@ interface MonthlyMilestone {
     task_steps: number;
     fluency_pauses: number;
   };
+  // 里程碑v2新增字段
+  week_range?: string;        // 周范围，如 "1-3"
+  type?: string;            // 里程碑类型：upgrade/gate/integrate/recover
+  index?: number;           // 阶段编号
+  deliverable?: {           // 可观察成果
+    title: string;
+    checklist: string[];
+  };
 }
 
 interface MonthlyPlan {
@@ -751,12 +759,21 @@ export default function PlanDetailPage() {
                   <div key={index} className="relative">
                     <div className="text-center mb-4">
                       <div className={`w-16 h-16 mx-auto rounded-full bg-gradient-to-r ${getTierColor(tier)} flex items-center justify-center text-white font-bold text-xl mb-3`}>
-                        M{milestone.month}
+                        {milestone.index ? `S${milestone.index}` : `M${milestone.month}`}
                       </div>
                       <div className="flex items-center justify-center gap-1 mb-2">
                         <Target className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-medium text-gray-700">学习重点</span>
+                        <span className="text-sm font-medium text-gray-700">
+                          {milestone.type === 'upgrade' ? '能力跃迁' :
+                           milestone.type === 'gate' ? '评估闸口' :
+                           milestone.type === 'integrate' ? '整合应用' : '学习重点'}
+                        </span>
                       </div>
+                      {milestone.week_range && (
+                        <div className="text-xs text-gray-500 mb-2">
+                          第{milestone.week_range}周
+                        </div>
+                      )}
                     </div>
 
                     <ul className="space-y-2 mb-4">
@@ -767,6 +784,24 @@ export default function PlanDetailPage() {
                         </li>
                       ))}
                     </ul>
+
+                    {/* 可观察成果 (里程碑v2) */}
+                    {milestone.deliverable && (
+                      <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                        <div className="text-xs font-medium text-blue-800 mb-2">你将能：</div>
+                        <div className="text-sm font-medium text-blue-900 mb-2">
+                          {milestone.deliverable.title}
+                        </div>
+                        <ul className="space-y-1">
+                          {milestone.deliverable.checklist.map((item, idx) => (
+                            <li key={idx} className="text-xs text-blue-700 flex items-start gap-1">
+                              <CheckCircle className="w-3 h-3 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                     {isDynamicGatesUIEnabled() ? (
                       <>

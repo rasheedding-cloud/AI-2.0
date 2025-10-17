@@ -12,7 +12,7 @@ export const LESSON_MINUTES = 25; // 25分钟一课
  * 每个级别代表达到该水平所需的累计学习时间
  * 修正为更合理的学习时间分配
  */
-const BAND_PROGRESS_MINUTES: Record<string, number> = {
+export const BAND_PROGRESS_MINUTES: Record<string, number> = {
   'Pre-A': 0,      // 零基础
   'A1-': 1800,     // 基础入门 (30小时)
   'A1': 3600,      // A1水平 (60小时)
@@ -30,11 +30,12 @@ const BAND_PROGRESS_MINUTES: Record<string, number> = {
 
 /**
  * 档位范围配置（分钟/天）
+ * 基于25分钟课程时长的合理配置
  */
 export const TIER_RANGES = {
-  light: { min: 25, max: 45 },
-  standard: { min: 60, max: 105 },
-  intensive: { min: 120, max: 180 },
+  light: { min: 25, max: 50 },      // 1-2节课：25-50分钟
+  standard: { min: 50, max: 75 },   // 2-3节课：50-75分钟
+  intensive: { min: 75, max: 150 }, // 3-6节课：75-150分钟
 };
 
 /**
@@ -74,13 +75,14 @@ export function minutesPerWeek(dailyMinutes: number, daysPerWeek: number): numbe
 
 /**
  * 计算每天课程数
- * 修正：基于60分钟=2节25分钟课程的逻辑
+ * 基于25分钟课程时长的准确计算
  */
 export function lessonsPerDay(dailyMinutes: number): number {
-  // 每60分钟学习时间包含2节25分钟课程（50分钟）+10分钟复习
-  // 所以每30分钟对应1节25分钟课程
-  const lessonsPerHour = 2;
-  const lessonsPerDay = Math.ceil((dailyMinutes / 60) * lessonsPerHour);
+  // 直接基于25分钟课程时长计算
+  // 25分钟 = 1节课
+  // 50分钟 = 2节课
+  // 75分钟 = 3节课
+  const lessonsPerDay = Math.ceil(dailyMinutes / LESSON_MINUTES);
   return Math.max(1, lessonsPerDay);
 }
 
@@ -233,8 +235,8 @@ export function finalizePlanOption(
   startBand: DifficultyBand,
   targetBand: DifficultyBand
 ): PlanOption {
-  // 使用档位或用户偏好
-  const dailyMinutes = draft.daily_minutes || snapUserPreferenceToTier(intake.daily_minutes_pref || 75).minutes;
+  // 使用档位或用户偏好，改为更合理的默认值60分钟
+  const dailyMinutes = draft.daily_minutes || snapUserPreferenceToTier(intake.daily_minutes_pref || 60).minutes;
   const daysPerWeek = draft.days_per_week || intake.study_days_per_week || 5;
 
   // 计算核心数据
@@ -260,7 +262,7 @@ export function finalizePlanOption(
   // 确保有月度里程碑
   const monthlyMilestones = draft.monthly_milestones_one_line && draft.monthly_milestones_one_line.length > 0
     ? draft.monthly_milestones_one_line
-    : generateMonthlyMilestones(draft.track || 'daily', weeks);
+    : generateMonthlyMilestones(draft.track || 'daily', weeks, draft.tier);
 
   return {
     ...draft,
@@ -283,7 +285,7 @@ export function generateThreeTiers(intake: Intake): {
   standard: PlanOption;
   intensive: PlanOption;
 } {
-  const userPreference = snapUserPreferenceToTier(intake.daily_minutes_pref || 75);
+  const userPreference = snapUserPreferenceToTier(intake.daily_minutes_pref || 60);
   const baseDaysPerWeek = intake.study_days_per_week || 5;
 
   // 使用统一的起点推断逻辑，确保前后端一致
@@ -307,21 +309,21 @@ export function generateThreeTiers(intake: Intake): {
     goalText: intake.goal_free_text
   });
 
-  // 生成三档的档位设置
+  // 生成三档的档位设置 - 使用固定的合理配置
   const tiers = {
     light: {
       tier: 'light' as const,
-      daily_minutes: Math.max(TIER_RANGES.light.min, userPreference.minutes * 0.7),
+      daily_minutes: 30,  // 固定30分钟=1节课+5分钟复习
       days_per_week: Math.max(3, baseDaysPerWeek - 1),
     },
     standard: {
       tier: 'standard' as const,
-      daily_minutes: userPreference.minutes,
+      daily_minutes: 50,  // 固定50分钟=2节课
       days_per_week: baseDaysPerWeek,
     },
     intensive: {
       tier: 'intensive' as const,
-      daily_minutes: Math.min(TIER_RANGES.intensive.max, userPreference.minutes * 1.5),
+      daily_minutes: 75,  // 固定75分钟=3节课
       days_per_week: Math.min(6, baseDaysPerWeek + 1),
     }
   };
@@ -341,8 +343,8 @@ export function generateThreeTiers(intake: Intake): {
       study_days_per_week: config.days_per_week,
     }, weeks, totalMinutes);
 
-    // 生成默认的月度里程碑
-    const monthlyMilestones = generateMonthlyMilestones(recommendedTrack, weeks);
+    // 生成默认的月度里程碑 - 传递tier参数以生成差异化内容
+    const monthlyMilestones = generateMonthlyMilestones(recommendedTrack, weeks, tierName);
 
     results[tierName] = {
       tier: tierName,
@@ -384,57 +386,71 @@ export function validateCalculationConsistency(
 }
 
 /**
- * 生成月度里程碑描述
+ * 生成月度里程碑描述 - 支持基于实际时长的差异化里程碑
  */
-export function generateMonthlyMilestones(track: string, weeks: number): string[] {
-  const trackMilestones = {
-    work: [
-      '第1月：掌握基础商务问候和自我介绍',
-      '第2月：学习产品介绍和公司信息表达',
-      '第3月：练习商务会议和讨论技能',
-      '第4月：达成商务沟通和谈判能力'
-    ],
-    travel: [
-      '第1月：掌握旅行基础问候和方向询问',
-      '第2月：学习餐厅点餐和购物交流',
-      '第3月：练习酒店入住和交通安排',
-      '第4月：达成自由旅行和应急处理能力'
-    ],
-    study: [
-      '第1月：掌握学术基础词汇和课堂用语',
-      '第2月：学习论文阅读和笔记方法',
-      '第3月：练习学术讨论和报告技巧',
-      '第4月：达成学术研究和写作能力'
-    ],
-    daily: [
-      '第1月：掌握日常问候和自我介绍',
-      '第2月：学习兴趣爱好和日常话题交流',
-      '第3月：练习观点表达和情感分享',
-      '第4月：达成流畅日常对话和文化交流'
-    ],
-    exam: [
-      '第1月：掌握考试基础词汇和题型',
-      '第2月：学习阅读理解和听力技巧',
-      '第3月：练习写作和口语表达',
-      '第4月：达成应试技巧和高分策略'
-    ]
-  };
+export function generateMonthlyMilestones(track: string, weeks: number, tier: string = 'standard'): string[] {
+  // 计算基于周数的里程碑数量
+  const milestoneCount = calculateMilestoneCount(weeks);
 
-  const milestones = trackMilestones[track as keyof typeof trackMilestones] || trackMilestones.daily;
+  const targetLabel = getTrackTargetLabel(track);
 
-  // 根据学习周期调整里程碑数量
-  if (weeks <= 4) {
-    // 短期学习（1个月内），使用1个月里程碑
-    return [milestones[0]];
-  } else if (weeks <= 8) {
-    // 中期学习（2个月内），使用2个月里程碑
-    return milestones.slice(0, 2);
-  } else if (weeks <= 12) {
-    // 较长期学习（3个月内），使用3个月里程碑
-    return milestones.slice(0, 3);
+  // 生成指定数量的里程碑
+  const milestones = [];
+  for (let i = 1; i <= milestoneCount; i++) {
+    milestones.push(generateMilestoneText(i, targetLabel, milestoneCount, tier));
+  }
+  return milestones;
+}
+
+/**
+ * 计算基于周数的里程碑数量
+ */
+export function calculateMilestoneCount(weeks: number): number {
+  if (weeks <= 4) return 1;      // 短期学习：1个月里程碑
+  if (weeks <= 8) return 2;      // 中期学习：2个月里程碑
+  if (weeks <= 12) return 3;     // 较长期学习：3个月里程碑
+  return Math.min(4, Math.ceil(weeks / 4)); // 长期学习：4个月里程碑或每4周一个里程碑
+}
+
+/**
+ * 生成单个里程碑文本 - 基于不同强度和进度的差异化目标
+ */
+export function generateMilestoneText(monthNum: number, targetLabel: string, totalMonths: number = 4, tier: string = 'standard'): string {
+  // 根据方案强度设置不同的目标和进度
+  if (tier === 'light') {
+    // 轻量方案：基础目标，进度较慢
+    const lightMilestones = [
+      `掌握${targetLabel}的基础词汇和简单表达`,
+      `能够进行基本的${targetLabel}交流`,
+      `提升${targetLabel}的理解能力`,
+      `达到日常${targetLabel}的应用水平`,
+      `扩展${targetLabel}的使用场景`,
+      `巩固${targetLabel}的基础技能`
+    ];
+    return `第${monthNum}月：${lightMilestones[Math.min(monthNum - 1, lightMilestones.length - 1)]}`;
+
+  } else if (tier === 'intensive') {
+    // 进阶方案：高目标，快速进度
+    const intensiveMilestones = [
+      `快速掌握${targetLabel}核心表达`,
+      `实现流利的${targetLabel}交流`,
+      `达到专业级${targetLabel}应用`,
+      `精通${targetLabel}的高级技巧`,
+      `实现${targetLabel}的熟练运用`
+    ];
+    return `第${monthNum}月：${intensiveMilestones[Math.min(monthNum - 1, intensiveMilestones.length - 1)]}`;
+
   } else {
-    // 长期学习（4个月以上），使用全部4个月里程碑
-    return milestones;
+    // 标准方案：平衡的目标和进度
+    const standardMilestones = [
+      `系统学习${targetLabel}基础知识`,
+      `建立有效的${targetLabel}交流能力`,
+      `提升${targetLabel}的综合应用`,
+      `达到熟练的${targetLabel}水平`,
+      `扩展${targetLabel}的实际应用`,
+      `完善${targetLabel}的表达技巧`
+    ];
+    return `第${monthNum}月：${standardMilestones[Math.min(monthNum - 1, standardMilestones.length - 1)]}`;
   }
 }
 

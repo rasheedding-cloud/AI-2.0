@@ -37,6 +37,13 @@ import {
   logFeatureFlagUsage
 } from '@/lib/features/dynamicGates';
 import {
+  buildMilestonesV2,
+  compareMilestoneVersions,
+  MILESTONE_V2_FEATURES,
+  type PlanContext,
+  type Milestone
+} from '@/lib/learning/milestones_v2';
+import {
   finalizePlanOption,
   generateThreeTiers,
   validateCalculationConsistency
@@ -371,36 +378,32 @@ class AIService {
     return finalResponse;
   }
 
-  // 修复方案数据中的月度里程碑
+  // 修复方案数据中的月度里程碑 - 支持基于实际时长的差异化里程碑
   private fixPlanMilestones(plan: any): any {
     // 确保有ui_label_target，如果没有则根据track生成默认值
     const targetLabel = plan.ui_label_target || this.getDefaultTargetLabel(plan.track);
 
+    // 计算基于周数的合理里程碑数量
+    const weeks = plan.weeks || 16;
+    const milestoneCount = this.calculateMilestoneCount(weeks);
+
     if (!plan.monthly_milestones_one_line || !Array.isArray(plan.monthly_milestones_one_line) || plan.monthly_milestones_one_line.length === 0) {
-      // 如果没有里程碑数组或是空数组，创建默认的4个月里程碑
-      plan.monthly_milestones_one_line = [
-        `第1月：建立${targetLabel}的基础`,
-        `第2月：提升${targetLabel}的技能`,
-        `第3月：巩固${targetLabel}的能力`,
-        `第4月：达到${targetLabel}的目标`
-      ];
-    } else if (plan.monthly_milestones_one_line.length < 3) {
-      // 如果里程碑不足3个，补充到至少3个
+      // 如果没有里程碑数组或是空数组，根据实际周数创建默认里程碑
+      plan.monthly_milestones_one_line = this.generateDefaultMilestones(milestoneCount, targetLabel, plan.tier);
+    } else {
+      // 如果已有里程碑，调整到合理的数量
       const existing = plan.monthly_milestones_one_line;
 
-      while (existing.length < 3) {
-        const monthNum = existing.length + 1;
-        if (monthNum === 1) {
-          existing.push(`第1月：建立${targetLabel}的基础`);
-        } else if (monthNum === 2) {
-          existing.push(`第2月：提升${targetLabel}的技能`);
-        } else {
-          existing.push(`第3月：巩固${targetLabel}的能力`);
+      if (existing.length < milestoneCount) {
+        // 补充缺失的里程碑
+        while (existing.length < milestoneCount) {
+          const monthNum = existing.length + 1;
+          existing.push(this.generateMilestoneText(monthNum, targetLabel, milestoneCount, plan.tier));
         }
+      } else if (existing.length > milestoneCount) {
+        // 截取多余的里程碑
+        plan.monthly_milestones_one_line = existing.slice(0, milestoneCount);
       }
-    } else if (plan.monthly_milestones_one_line.length > 4) {
-      // 如果里程碑超过4个，截取前4个
-      plan.monthly_milestones_one_line = plan.monthly_milestones_one_line.slice(0, 4);
     }
 
     // 修复can_do_examples，确保符合schema要求
@@ -414,6 +417,52 @@ class AIService {
     }
 
     return plan;
+  }
+
+  // 计算基于周数的里程碑数量
+  private calculateMilestoneCount(weeks: number): number {
+    if (weeks <= 4) return 1;      // 短期学习：1个月里程碑
+    if (weeks <= 8) return 2;      // 中期学习：2个月里程碑
+    if (weeks <= 12) return 3;     // 较长期学习：3个月里程碑
+    return 4;                      // 长期学习：4个月里程碑
+  }
+
+  // 生成默认里程碑
+  private generateDefaultMilestones(count: number, targetLabel: string, tier: string): string[] {
+    const milestones = [];
+    for (let i = 1; i <= count; i++) {
+      milestones.push(this.generateMilestoneText(i, targetLabel, count, tier));
+    }
+    return milestones;
+  }
+
+  // 生成单个里程碑文本
+  private generateMilestoneText(monthNum: number, targetLabel: string, totalMonths: number, tier: string): string {
+    // 根据方案强度和总月数调整里程碑描述
+    const intensityPrefix = tier === 'intensive' ? '快速' : tier === 'light' ? '稳步' : '系统';
+
+    if (totalMonths <= 3) {
+      // 短期方案：更紧凑的描述
+      const shortProgressTexts = [
+        `${intensityPrefix}建立${targetLabel}基础`,
+        `${intensityPrefix}提升${targetLabel}技能`,
+        `${intensityPrefix}达成${targetLabel}目标`
+      ];
+      return `第${monthNum}月：${shortProgressTexts[monthNum - 1]}`;
+    } else {
+      // 长期方案：循序渐进的描述
+      const progressTexts = [
+        `${intensityPrefix}建立${targetLabel}的基础`,
+        `${intensityPrefix}提升${targetLabel}的技能`,
+        `${intensityPrefix}巩固${targetLabel}的能力`,
+        `${intensityPrefix}达到${targetLabel}的目标`,
+        `${intensityPrefix}扩展${targetLabel}的应用`,
+        `${intensityPrefix}强化${targetLabel}的实战`,
+        `${intensityPrefix}完善${targetLabel}的综合`,
+        `${intensityPrefix}实现${targetLabel}的精通`
+      ];
+      return `第${monthNum}月：${progressTexts[Math.min(monthNum - 1, progressTexts.length - 1)]}`;
+    }
   }
 
   // 获取默认的目标标签
@@ -849,7 +898,13 @@ class AIService {
       // 应用动态门限
       const processedMonthlyPlan = this.applyDynamicGates(fixedMonthlyPlan, 'generate_monthly');
 
-      const validatedMonthlyPlan = validateAndParse(monthlyPlanSchema, processedMonthlyPlan);
+      // 应用里程碑v2系统（如果启用）
+      let finalMonthlyPlan = processedMonthlyPlan;
+      if (MILESTONE_V2_FEATURES.FEATURE_MILESTONES_V2) {
+        finalMonthlyPlan = this.applyMilestonesV2(processedMonthlyPlan, validatedPlan, validatedIntake);
+      }
+
+      const validatedMonthlyPlan = validateAndParse(monthlyPlanSchema, finalMonthlyPlan);
 
       // 记录历史
       PromptHistory.add({
@@ -1349,6 +1404,74 @@ class AIService {
         error: 'Failed to generate quick test',
         details: error,
       };
+    }
+  }
+
+  // 应用里程碑v2系统
+  private applyMilestonesV2(monthlyPlan: any, chosenPlan: any, intake: any): any {
+    try {
+      const isShadow = MILESTONE_V2_FEATURES.MILESTONES_SHADOW;
+
+      // 构建计划上下文
+      const context: PlanContext = {
+        startBand: inferStartBand(intake),
+        targetBand: inferTargetBandFromIntake(intake),
+        totalWeeks: chosenPlan.weeks,
+        minutesPerWeek: chosenPlan.daily_minutes * chosenPlan.days_per_week,
+        track: chosenPlan.track || 'daily',
+        monthCaps: monthlyPlan.milestones?.map((m: any) => m.max_target_band) || [],
+        startDateISO: new Date().toISOString()
+      };
+
+      console.log('里程碑v2 - 计划上下文:', context);
+
+      // 生成v2里程碑
+      const milestonesV2 = buildMilestonesV2(context);
+      console.log('里程碑v2 - 生成的里程碑:', milestonesV2);
+
+      // 影子模式对比
+      if (isShadow && monthlyPlan.milestones) {
+        const comparison = compareMilestoneVersions(monthlyPlan.milestones, milestonesV2);
+        console.log('里程碑v2 - 影子模式对比:', comparison);
+
+        // 影子模式下记录差异但使用原版
+        logFeatureFlagUsage('milestone_v2_shadow_comparison', {
+          context,
+          comparison,
+          v2_count: milestonesV2.length,
+          v1_count: monthlyPlan.milestones.length
+        });
+
+        return monthlyPlan; // 影子模式返回原版
+      }
+
+      // 非影子模式，使用v2里程碑
+      const enhancedPlan = {
+        ...monthlyPlan,
+        milestones: milestonesV2.map((milestone: Milestone) => ({
+          month: Math.ceil(milestone.endWeek / 4), // 转换为月份显示
+          max_target_band: milestone.cap,
+          focus: milestone.focus,
+          assessment_gate: milestone.assessment_gate,
+          deliverable: milestone.deliverable,
+          week_range: `${milestone.startWeek}-${milestone.endWeek}`, // 周范围
+          type: milestone.type, // 里程碑类型
+          index: milestone.index // 阶段编号
+        }))
+      };
+
+      console.log('里程碑v2 - 增强计划完成:', {
+        原里程碑数: monthlyPlan.milestones?.length || 0,
+        新里程碑数: milestonesV2.length,
+        总周数: context.totalWeeks,
+        每周分钟: context.minutesPerWeek
+      });
+
+      return enhancedPlan;
+
+    } catch (error) {
+      console.error('里程碑v2应用失败:', error);
+      return monthlyPlan; // 失败时回退到原版
     }
   }
 

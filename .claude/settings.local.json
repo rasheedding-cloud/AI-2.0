@@ -28,7 +28,10 @@
       "Bash(dos2unix:*)",
       "Bash(echo:*)",
       "Bash(npm run test:*)",
-      "Bash(start http://localhost:3001)"
+      "Bash(start http://localhost:3001)",
+      "WebSearch",
+      "Bash(start http://localhost:3003)",
+      "Bash(start http://localhost:3002)"
     ],
     "deny": [],
     "ask": []

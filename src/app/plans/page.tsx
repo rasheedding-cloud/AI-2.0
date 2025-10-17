@@ -68,7 +68,9 @@ export default function PlansPage() {
               周数: plan.weeks,
               总课时: plan.lessons_total,
               完成时间: plan.finish_date_est,
-              诊断: plan.diagnosis
+              诊断: plan.diagnosis,
+              里程碑数量: plan.monthly_milestones_one_line?.length || 0,
+              里程碑内容: plan.monthly_milestones_one_line
             });
           });
 
