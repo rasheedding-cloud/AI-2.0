@@ -205,11 +205,11 @@ export default function PlansPage() {
 
   const getTrackTargetLabel = (track: string) => {
     switch (track) {
-      case 'work': return '职场熟练';
-      case 'travel': return '旅行交流';
-      case 'study': return '学术研究';
-      case 'daily': return '日常对话';
-      case 'exam': return '考试通过';
+      case 'work': return '职场英语';
+      case 'travel': return '旅行英语';
+      case 'study': return '学术英语';
+      case 'daily': return '日常英语';
+      case 'exam': return '考试英语';
       default: return '英语提升';
     }
   };
@@ -217,10 +217,10 @@ export default function PlansPage() {
   const generateTrackExamples = (track: string, intensity: string): string[] => {
     const targetExamples = {
       work: [
-        '能够进行有效的商务沟通和职场交流',
-        '能够处理日常工作中的英语邮件和会议',
-        '能够在商务场合进行专业表达和讨论',
-        '能够应对职场中的常见英语沟通需求'
+        '能够听懂职场大多数对话并做出简单回应',
+        '能够处理基本的职场邮件和信息确认',
+        '能够在会议中进行简单的自我介绍和意见表达',
+        '能够应对日常工作中的基础英语沟通场景'
       ],
       travel: [
         '能够自如地进行国外旅行和日常交流',

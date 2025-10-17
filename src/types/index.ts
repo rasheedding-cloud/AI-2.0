@@ -1,7 +1,7 @@
 export type Gender = 'male' | 'female' | 'prefer_not_to_say';
 export type Identity = 'working_adult' | 'university' | 'high_school';
 export type Track = 'work' | 'travel' | 'study' | 'daily' | 'exam';
-export type DifficultyBand = 'Pre-A' | 'A1-' | 'A1' | 'A1+' | 'A2-' | 'A2' | 'A2+' | 'B1-' | 'B1';
+export type DifficultyBand = 'Pre-A' | 'A1-' | 'A1' | 'A1+' | 'A2-' | 'A2' | 'A2+' | 'B1-' | 'B1' | 'B1+' | 'B2' | 'B2+' | 'C1';
 export type CulturalMode = 'sa' | 'gcc' | 'none';
 export type PlanTier = 'light' | 'standard' | 'intensive';
 export type DiagnosisColor = 'green' | 'yellow' | 'red';

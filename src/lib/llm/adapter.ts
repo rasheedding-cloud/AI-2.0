@@ -11,6 +11,98 @@ export class LLMError extends Error {
   }
 }
 
+export class GeminiAdapter implements LLMAdapter {
+  private apiKey: string;
+  private baseUrl: string;
+  private model: string;
+
+  constructor(config: {
+    apiKey: string;
+    baseUrl?: string;
+    model?: string;
+  }) {
+    this.apiKey = config.apiKey;
+    this.baseUrl = config.baseUrl || 'https://generativelanguage.googleapis.com/v1beta';
+    this.model = config.model || 'gemini-2.5-pro';
+  }
+
+  async chat<TOut = string>(opts: {
+    system?: string;
+    prompt: string;
+    temperature?: number;
+  }): Promise<TOut> {
+    try {
+      // Gemini API uses a different format than OpenAI/DeepSeek
+      let fullPrompt = opts.prompt;
+
+      // If there's a system message, prepend it to the user prompt
+      if (opts.system) {
+        fullPrompt = `${opts.system}\n\n${opts.prompt}`;
+      }
+
+      const response = await fetch(
+        `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: fullPrompt
+              }]
+            }],
+            generationConfig: {
+              temperature: opts.temperature || 0.2,
+              maxOutputTokens: 8000,
+              candidateCount: 1,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new LLMError(
+          `Gemini API error: ${response.status} ${response.statusText}`,
+          response.status.toString(),
+          errorData
+        );
+      }
+
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!content) {
+        throw new LLMError('No content received from Gemini API');
+      }
+
+      // Try to parse as JSON if it looks like JSON
+      if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
+        try {
+          return JSON.parse(content) as TOut;
+        } catch {
+          // If parsing fails, return as string
+          return content as TOut;
+        }
+      }
+
+      return content as TOut;
+    } catch (error) {
+      if (error instanceof LLMError) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        throw new LLMError(`LLM call failed: ${error.message}`, 'NETWORK_ERROR', error);
+      }
+
+      throw new LLMError('Unknown LLM error', 'UNKNOWN_ERROR', error);
+    }
+  }
+}
+
 export class DeepSeekAdapter implements LLMAdapter {
   private apiKey: string;
   private baseUrl: string;
@@ -182,18 +274,33 @@ export class MockAdapter implements LLMAdapter {
 
 // Factory function to create adapter based on environment
 export function createLLMAdapter(): LLMAdapter {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  // 优先使用 Gemini API
+  const geminiApiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey) {
-    console.warn('No DEEPSEEK_API_KEY found, using mock adapter');
-    return new MockAdapter();
+  if (geminiApiKey) {
+    console.log('Using Gemini API adapter');
+    return new GeminiAdapter({
+      apiKey: geminiApiKey,
+      baseUrl: process.env.GEMINI_BASE_URL,
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-pro',
+    });
   }
 
-  return new DeepSeekAdapter({
-    apiKey,
-    baseUrl: process.env.DEEPSEEK_BASE_URL,
-    model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
-  });
+  // 回退到 DeepSeek API
+  const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+
+  if (deepseekApiKey) {
+    console.log('Using DeepSeek API adapter');
+    return new DeepSeekAdapter({
+      apiKey: deepseekApiKey,
+      baseUrl: process.env.DEEPSEEK_BASE_URL,
+      model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+    });
+  }
+
+  // 如果都没有，使用模拟适配器
+  console.warn('No API keys found, using mock adapter');
+  return new MockAdapter();
 }
 
 // Retry wrapper for LLM calls

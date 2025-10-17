@@ -41,18 +41,15 @@ ${Array.from({ length: monthsTotal }, (_, i) => {
   const monthNum = i + 1;
   const isMonth1or2 = monthNum <= 2;
   const targetBand = isMonth1or2 ? "A2+" : monthNum === 3 ? "B1-" : "B1";
-  const accuracy = monthNum === 1 ? 0.85 : monthNum === 2 ? 0.80 : monthNum === 3 ? 0.75 : 0.70;
-  const taskSteps = monthNum === 1 ? 3 : monthNum === 2 ? 4 : monthNum === 3 ? 5 : 6;
-  const fluencyPauses = monthNum === 1 ? 2 : monthNum === 2 ? 3 : monthNum === 3 ? 4 : 5;
 
   return `    {
       "month": ${monthNum},
       "max_target_band": "${targetBand}",
       "focus": ["重点1", "重点2", "重点3", "重点4"],
       "assessment_gate": {
-        "accuracy": ${accuracy},
-        "task_steps": ${taskSteps},
-        "fluency_pauses": ${fluencyPauses}
+        "accuracy": 0.8,
+        "task_steps": ${isMonth1or2 ? 3 : 4},
+        "fluency_pauses": 2
       }
     }${monthNum < monthsTotal ? ',' : ''}`;
 }).join('\n')}
@@ -132,5 +129,7 @@ TASK: Produce a MonthlyPlan with DYNAMIC caps based on start_band × target_band
 - **task_steps**: 任务复杂度（步骤数量）
 - **fluency_pauses**: 允许的思考停顿次数
 
-请根据选定的${tier}方案和${track}轨道，生成详细的${weeks}周月度计划。确保每月重点明确、循序渐进，并严格遵守难度递进规则。`;
+请根据选定的${tier}方案和${track}轨道，生成详细的${weeks}周月度计划。确保每月重点明确、循序渐进，并严格遵守难度递进规则。
+
+**重要提示**：assessment_gate中的数值将根据max_target_band由后端动态计算，当前提供的数值仅为占位符。请重点关注max_target_band的正确设置和focus内容的合理性。`;
 };

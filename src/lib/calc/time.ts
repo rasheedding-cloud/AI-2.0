@@ -2,6 +2,7 @@ import type { Intake, PlanOption } from '@/types';
 import type { DifficultyBand } from '@/types';
 import { recommendLearningTrack } from '@/lib/trackRecommendation';
 import { inferStartBand, inferTargetBandFromIntake } from '@/lib/learning/caps';
+import { assessGoalCEFR, FEATURE_FLAGS } from '@/server/services/assessor';
 
 // 基础计算常量
 export const LESSON_MINUTES = 25; // 25分钟一课
@@ -21,6 +22,10 @@ const BAND_PROGRESS_MINUTES: Record<string, number> = {
   'A2+': 10800,    // A2进阶 (180小时)
   'B1-': 12600,    // B1预备 (210小时)
   'B1': 14400,     // B1水平 (240小时)
+  'B1+': 18000,    // B1进阶 (300小时)
+  'B2': 24000,     // B2水平 (400小时) - 雅思6.0-6.5分
+  'B2+': 30000,    // B2进阶 (500小时) - 雅思7.0分
+  'C1': 40000,     // C1水平 (667小时) - 雅思8.0分
 };
 
 /**
@@ -69,17 +74,21 @@ export function minutesPerWeek(dailyMinutes: number, daysPerWeek: number): numbe
 
 /**
  * 计算每天课程数
+ * 修正：基于60分钟=2节25分钟课程的逻辑
  */
 export function lessonsPerDay(dailyMinutes: number): number {
-  return Math.max(1, Math.ceil(dailyMinutes / LESSON_MINUTES));
+  // 每60分钟学习时间包含2节25分钟课程（50分钟）+10分钟复习
+  // 所以每30分钟对应1节25分钟课程
+  const lessonsPerHour = 2;
+  const lessonsPerDay = Math.ceil((dailyMinutes / 60) * lessonsPerHour);
+  return Math.max(1, lessonsPerDay);
 }
 
 /**
  * 计算从起点到目标的总分钟需求
+ * 修正：正确计算从起点到目标的增量学习时间
  */
 export function totalMinutesRequired(startBand: DifficultyBand, targetBand: DifficultyBand): number {
-  console.log('totalMinutesRequired 调用:', { startBand, targetBand });
-
   if (startBand === targetBand) {
     // 即使起点和目标相同，也需要一定的巩固和提升时间
     // 给出合理的巩固时间：相当于半个级别的学习时间，但不低于最低学习时间
@@ -88,24 +97,14 @@ export function totalMinutesRequired(startBand: DifficultyBand, targetBand: Diff
       BAND_PROGRESS_MINUTES[startBand] ?
         Math.floor(BAND_PROGRESS_MINUTES[startBand] * 0.5) : 3600 // 默认至少60小时
     );
-    console.log('起点和目标相同，返回巩固时间:', consolidationMinutes);
     return consolidationMinutes;
   }
 
-  const bandOrder = ['Pre-A', 'A1-', 'A1', 'A1+', 'A2-', 'A2', 'A2+', 'B1-', 'B1'];
+  const bandOrder = ['Pre-A', 'A1-', 'A1', 'A1+', 'A2-', 'A2', 'A2+', 'B1-', 'B1', 'B1+', 'B2', 'B2+', 'C1'];
   const startIndex = bandOrder.indexOf(startBand);
   const targetIndex = bandOrder.indexOf(targetBand);
 
-  console.log('索引计算:', {
-    bandOrder,
-    startIndex,
-    targetIndex,
-    startBandFound: startIndex !== -1,
-    targetBandFound: targetIndex !== -1
-  });
-
   if (startIndex === -1 || targetIndex === -1) {
-    console.log('找不到有效的起始或目标索引');
     return 0;
   }
 
@@ -113,20 +112,15 @@ export function totalMinutesRequired(startBand: DifficultyBand, targetBand: Diff
   const startMinutes = BAND_PROGRESS_MINUTES[startBand] || 0;
   const targetMinutes = BAND_PROGRESS_MINUTES[targetBand] || 0;
 
-  // 计算需要额外学习的时间（目标累计时间 - 起点累计时间）
+  // 正确计算：从起点到目标的增量学习时间
+  const minutesDifference = targetMinutes - startMinutes;
+
+  // 如果目标等级高于起点等级，需要额外学习时间
+  // 如果目标等级低于起点等级，需要复习和巩固时间
   const totalMinutes = Math.max(
     1800, // 最低30小时学习时间（约4-6周）
-    targetMinutes - startMinutes
+    minutesDifference > 0 ? minutesDifference : Math.abs(minutesDifference) * 0.5 // 降级目标需要一半时间复习
   );
-
-  console.log('分钟数计算:', {
-    起点级别: startBand,
-    起点累计分钟: startMinutes,
-    目标级别: targetBand,
-    目标累计分钟: targetMinutes,
-    需要学习分钟: totalMinutes,
-    最低保障时间: 1800
-  });
 
   return totalMinutes;
 }

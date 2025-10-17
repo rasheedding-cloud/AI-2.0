@@ -25,6 +25,18 @@ import {
   inferTargetBandFromIntake
 } from '@/lib/learning/caps';
 import {
+  gateByCap,
+  gateToAssessmentGate,
+  compareGates,
+  logGateApplication
+} from '@/lib/learning/gates';
+import {
+  isDynamicGatesEnabled,
+  isShadowModeEnabled,
+  withDynamicGates,
+  logFeatureFlagUsage
+} from '@/lib/features/dynamicGates';
+import {
   finalizePlanOption,
   generateThreeTiers,
   validateCalculationConsistency
@@ -407,11 +419,11 @@ class AIService {
   // 获取默认的目标标签
   private getDefaultTargetLabel(track: string): string {
     switch (track) {
-      case 'work': return '职场熟练';
-      case 'travel': return '旅行交流';
-      case 'study': return '学术研究';
-      case 'daily': return '日常对话';
-      case 'exam': return '考试通过';
+      case 'work': return '职场英语';
+      case 'travel': return '旅行英语';
+      case 'study': return '学术英语';
+      case 'daily': return '日常英语';
+      case 'exam': return '考试英语';
       default: return '英语提升';
     }
   }
@@ -420,10 +432,10 @@ class AIService {
   private generateValidCanDoExamples(track: string, intensity: string): string[] {
     const trackExamples = {
       work: [
-        '能够进行有效的商务沟通和职场交流',
-        '能够处理日常工作中的英语邮件和会议',
-        '能够在商务场合进行专业表达和讨论',
-        '能够应对职场中的常见英语沟通需求'
+        '能够听懂职场大多数对话并做出简单回应',
+        '能够处理基本的职场邮件和信息确认',
+        '能够在会议中进行简单的自我介绍和意见表达',
+        '能够应对日常工作中的基础英语沟通场景'
       ],
       travel: [
         '能够自如地进行国外旅行和日常交流',
@@ -455,6 +467,71 @@ class AIService {
 
     // 确保至少返回3个，最多6个示例
     return baseExamples.slice(0, Math.max(3, Math.min(6, baseExamples.length)));
+  }
+
+  // 应用动态门限到月度计划
+  private applyDynamicGates(monthlyPlan: any, context: string = 'monthly_plan'): any {
+    if (!isDynamicGatesEnabled()) {
+      logFeatureFlagUsage('dynamic_gates_disabled', { context });
+      return monthlyPlan;
+    }
+
+    const isShadow = isShadowModeEnabled();
+    logFeatureFlagUsage('dynamic_gates_applying', { context, shadowMode: isShadow });
+
+    // 复制原始数据避免修改
+    const processedPlan = JSON.parse(JSON.stringify(monthlyPlan));
+
+    if (processedPlan.milestones && Array.isArray(processedPlan.milestones)) {
+      processedPlan.milestones.forEach((milestone: any, index: number) => {
+        const monthNum = index + 1;
+        const cap = milestone.max_target_band;
+
+        if (cap) {
+          // 生成基于cap的动态门限
+          const dynamicGate = gateByCap(cap);
+
+          // 在影子模式下记录差异
+          if (isShadow && milestone.assessment_gate) {
+            const comparison = compareGates(milestone.assessment_gate, dynamicGate);
+            if (comparison.hasDiff) {
+              logFeatureFlagUsage('gate_shadow_diff', {
+                month: monthNum,
+                cap,
+                diff: comparison.diff
+              });
+            }
+          }
+
+          // 应用动态门限（生产模式或影子模式都记录）
+          if (!isShadow) {
+            // 保存原始LLM门限用于对比
+            const originalGate = milestone.assessment_gate;
+
+            // 应用动态门限
+            milestone.assessment_gate = gateToAssessmentGate(dynamicGate);
+
+            // 记录门限应用
+            logGateApplication(cap, monthNum, 'backend', {
+              original: originalGate,
+              applied: milestone.assessment_gate,
+              gate_label: dynamicGate.gate_label
+            });
+          } else {
+            // 影子模式：保留原始门限，但记录动态门限
+            logGateApplication(cap, monthNum, 'shadow', {
+              original: milestone.assessment_gate,
+              would_apply: gateToAssessmentGate(dynamicGate),
+              gate_label: dynamicGate.gate_label
+            });
+          }
+        } else {
+          console.warn(`[Gate] No max_target_band found for month ${monthNum}, skipping dynamic gate`);
+        }
+      });
+    }
+
+    return processedPlan;
   }
 
   // 修复月度计划数据
@@ -769,7 +846,10 @@ class AIService {
       // 修复月度计划数据
       const fixedMonthlyPlan = this.fixMonthlyPlan(parsedResponse);
 
-      const validatedMonthlyPlan = validateAndParse(monthlyPlanSchema, fixedMonthlyPlan);
+      // 应用动态门限
+      const processedMonthlyPlan = this.applyDynamicGates(fixedMonthlyPlan, 'generate_monthly');
+
+      const validatedMonthlyPlan = validateAndParse(monthlyPlanSchema, processedMonthlyPlan);
 
       // 记录历史
       PromptHistory.add({

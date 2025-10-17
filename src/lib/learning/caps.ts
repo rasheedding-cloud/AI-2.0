@@ -1,4 +1,4 @@
-export const ORDER = ["Pre-A", "A1-", "A1", "A1+", "A2-", "A2", "A2+", "B1-", "B1"] as const;
+export const ORDER = ["Pre-A", "A1-", "A1", "A1+", "A2-", "A2", "A2+", "B1-", "B1", "B1+", "B2", "B2+", "C1"] as const;
 export type Band = typeof ORDER[number];
 
 const idx = (b: Band) => Math.max(0, ORDER.indexOf(b));
@@ -58,7 +58,7 @@ export function inferStartBand(intake: any): Band {
 // 辅助函数：从目标标签映射到目标微档
 export function inferTargetBand(plan: any): Band {
   const t = plan.ui_label_target || "";
-  if (t.includes("自如") || t.includes("熟练") || t.includes("精通") || t.includes("流利")) return "B1";
+  if (t.includes("自如") || t.includes("熟练") || t.includes("精通") || t.includes("流利")) return "B2+";
   if (t.includes("生存") || t.includes("基础") || t.includes("简单")) return "A2";
   return "B1"; // 默认目标是B1，而不是A2
 }
@@ -67,6 +67,49 @@ export function inferTargetBand(plan: any): Band {
 export function inferTargetBandFromIntake(intake: any): Band {
   const goalText = (intake.goal_free_text || "").toLowerCase();
   const track = intake.track_override || '';
+  console.log('目标推断开始:', { goalText, track });
+
+  // 优先处理考试和留学目标，特别是雅思考试 - 这是最重要的逻辑
+  if (track === 'exam' || goalText.includes('考试') || goalText.includes('备考') || goalText.includes('雅思') || goalText.includes('托福')) {
+    // 雅思考试目标分析 - 修正逻辑
+    // 雅思分数对应：8.0 = C1, 7.0 = B2+, 6.5 = B2, 6.0 = B1+, 5.5 = B1, 5.0 = B1-, 4.5 = A2+
+    if (goalText.includes('英国') || goalText.includes('高校') || goalText.includes('大学') || goalText.includes('留学') ||
+        goalText.includes('uk') || goalText.includes('university') || goalText.includes('britain')) {
+      // 英国高校通常要求雅思6.0-7.0分，对应B1+到B2+水平
+      if (goalText.includes('7.0') || goalText.includes('7.0分')) {
+        return "B2+"; // 雅思7.0分对应B2+水平
+      } else if (goalText.includes('6.5') || goalText.includes('6.5分')) {
+        return "B2"; // 雅思6.5分对应B2水平
+      } else if (goalText.includes('6.0') || goalText.includes('6.0分')) {
+        return "B1+"; // 雅思6.0分对应B1+水平
+      } else if (goalText.includes('5.5') || goalText.includes('5.5分')) {
+        return "B1"; // 雅思5.5分对应B1水平
+      } else if (goalText.includes('5.0')) {
+        return "B1-"; // 雅思5.0分对应B1-水平
+      } else {
+        return "B2"; // 默认英国留学目标为B2（雅思6.5分）
+      }
+    } else {
+      // 一般考试目标
+      if (goalText.includes('8.0') || goalText.includes('8.0分')) {
+        return "C1"; // 雅思8.0分对应C1水平
+      } else if (goalText.includes('7.0') || goalText.includes('7.0分')) {
+        return "B2+"; // 雅思7.0分对应B2+水平
+      } else if (goalText.includes('6.5') || goalText.includes('6.5分')) {
+        return "B2"; // 雅思6.5分对应B2水平
+      } else if (goalText.includes('6.0') || goalText.includes('6.0分')) {
+        return "B1+"; // 雅思6.0分对应B1+水平
+      } else if (goalText.includes('5.5') || goalText.includes('5.5分')) {
+        return "B1"; // 雅思5.5分对应B1水平
+      } else if (goalText.includes('5.0')) {
+        return "B1-"; // 雅思5.0分对应B1-水平
+      } else if (goalText.includes('4.5')) {
+        return "A2+"; // 雅思4.5分对应A2+水平
+      } else {
+        return "B1+"; // 默认考试目标为B1+
+      }
+    }
+  }
 
   // 修正：降低默认目标难度，避免1920课时的问题
   // 优先处理具体的轨道类型，避免关键词冲突
@@ -81,21 +124,19 @@ export function inferTargetBandFromIntake(intake: any): Band {
     }
   }
 
-  if (track === 'exam' || goalText.includes('考试') || goalText.includes('备考') || goalText.includes('雅思') || goalText.includes('托福')) {
-    // 雅思5.5分对应B1水平，5.0分对应B1-水平，4.5分对应A2+水平
-    if (goalText.includes('5.5') || goalText.includes('5.5分')) {
-      return "B1"; // 雅思5.5分对应B1水平
-    } else if (goalText.includes('5.0')) {
-      return "B1-"; // 雅思5.0分对应B1-水平
-    } else if (goalText.includes('4.5')) {
-      return "A2+"; // 雅思4.5分对应A2+水平
-    } else {
-      return "A2+"; // 默认考试目标降低到A2+
-    }
-  }
-
   if (track === 'work' || goalText.includes('工作') || goalText.includes('职场') || goalText.includes('商务') || goalText.includes('职业')) {
-    return "A2+"; // 职场目标降低到A2+
+    // 职场熟练应该对应B2+水平
+    if (goalText.includes('熟练') || goalText.includes('精通') || goalText.includes('流利') || goalText.includes('专业')) {
+      return "B2+"; // 职场熟练需要B2+水平
+    } else if (goalText.includes('基础') || goalText.includes('入门') || goalText.includes('简单')) {
+      return "B1"; // 基础职场英语需要B1水平
+    } else if (goalText.includes('中层') || goalText.includes('管理') || goalText.includes('高层') || goalText.includes('传达') || goalText.includes('执行') || goalText.includes('汇报') || goalText.includes('决策')) {
+      console.log('管理层关键词匹配，目标设为B2+');
+      return "B2+"; // 管理层级沟通需要B2+水平
+    } else {
+      console.log('默认职场目标设为B2');
+      return "B2"; // 默认职场目标为B2水平
+    }
   }
 
   if (track === 'study' || goalText.includes('学术') || goalText.includes('留学') || goalText.includes('研究')) {
