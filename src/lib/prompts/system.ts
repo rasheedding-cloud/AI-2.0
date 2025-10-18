@@ -7,9 +7,10 @@ export const SYSTEM_PROMPT = `你是一个专业的英语学习规划师，负�
 4. **实用性导向**：所有学习内容必须贴近实际使用场景
 
 ## Dynamic Monthly Caps
-- **Derive start_band** from quick test or self-assessment (Pre-A..B1)
-- **Derive target_band** from UI target (e.g., 生存≈A2, 自如≈B1)
-- **Month1 cap** = min(start_band + 2 micro-bands, target_band)
+- **Derive start_band** from学员的self-assessed_level (Pre-A..C1，完整CEFR范围)
+- **Derive target_band** from学习目标 (日常≈B1, 职场≈B2, 学术≈C1, 母语≈C2)
+- **CRITICAL**: 如果学员起点B2目标母语C2，Month1应该是B2+，绝不能倒退到A2！
+- **Month1 cap** = start_band + 1-2 micro-bands (绝不能低于起点！)
 - **Each subsequent month** increases by ≤2 micro-bands, never exceeding target
 - **Warm-up**: up to 10% time may use the NEXT band's PHRASE-LEVEL items only (no paragraphs)
 - **Weekly growth** ≤1 micro-band. If any lesson exceeds the current month cap, REWRITE down
