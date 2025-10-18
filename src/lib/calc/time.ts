@@ -421,12 +421,33 @@ function generateIntensivePlan(
   dailyMinutes: number;
   daysPerWeek: number;
   weeks: number;
+  specialMode?: string;
 } {
-  // 计算激进方案的每日学习时间：标准强度的150%
+  // 检查标准方案是否已经达到强度上限
+  const isStandardAtMax = standardPlan.dailyMinutes >= 100 && standardPlan.daysPerWeek >= 6;
+
+  if (isStandardAtMax) {
+    // 特殊情况：标准方案已达到上限，进阶方案使用超强度模式
+    console.log('标准方案已达强度上限，进阶方案使用超强度模式');
+
+    const ultraIntensiveMinutes = 180; // 6节课/天
+    const ultraIntensiveDays = 6;      // 6天/周
+    const weeklyMinutes = ultraIntensiveMinutes * ultraIntensiveDays;
+    const weeks = weeksNeeded(totalMinutes, weeklyMinutes);
+
+    return {
+      dailyMinutes: ultraIntensiveMinutes,
+      daysPerWeek: ultraIntensiveDays,
+      weeks: weeks,
+      specialMode: 'ultra_intensive' // 标记为超强度模式
+    };
+  }
+
+  // 正常情况：计算激进方案的每日学习时间：标准强度的150%
   let intensiveDailyMinutes = Math.ceil(standardPlan.dailyMinutes * 1.5);
 
-  // 确保最高4节课/天（100分钟）
-  intensiveDailyMinutes = Math.min(100, intensiveDailyMinutes);
+  // 确保最高4节课/天（180分钟）
+  intensiveDailyMinutes = Math.min(180, intensiveDailyMinutes);
 
   // 保持与标准方案相同的学习天数，但可以适当增加
   let intensiveDaysPerWeek = Math.min(6, standardPlan.daysPerWeek + 1);
@@ -494,14 +515,14 @@ async function generatePhaseBasedMilestones(
  */
 async function buildPlanOption(
   tier: 'light' | 'standard' | 'intensive',
-  planConfig: { dailyMinutes: number; daysPerWeek: number; weeks: number },
+  planConfig: { dailyMinutes: number; daysPerWeek: number; weeks: number; specialMode?: string },
   totalMinutes: number,
   startBand: DifficultyBand,
   targetBand: DifficultyBand,
   intake: Intake,
   recommendedTrack: string
 ): Promise<PlanOption> {
-  const { dailyMinutes, daysPerWeek, weeks } = planConfig;
+  const { dailyMinutes, daysPerWeek, weeks, specialMode } = planConfig;
   const lessons = totalLessonsRequired(totalMinutes);
   const finishDate = finishDateEst(weeks);
 
@@ -522,12 +543,25 @@ async function buildPlanOption(
     goalDescription
   );
 
+  // 处理特殊模式的差异化显示
+  let uiLabelTarget = getTrackTargetLabel(recommendedTrack);
+  let canDoExamples = generateTrackExamples(recommendedTrack, getTierLevel(tier));
+
+  if (specialMode === 'ultra_intensive' && tier === 'intensive') {
+    uiLabelTarget += ' (超强度模式)';
+    canDoExamples = [
+      ...canDoExamples.slice(0, 2),
+      '每天6节课，每周6天的超高强度学习',
+      '适合能够全身心投入学习的学员'
+    ];
+  }
+
   return {
     tier,
     track: recommendedTrack,
     ui_label_current: '英语基础', // 默认值，可由AI覆盖
-    ui_label_target: getTrackTargetLabel(recommendedTrack), // 默认值，可由AI覆盖
-    can_do_examples: generateTrackExamples(recommendedTrack, getTierLevel(tier)), // 默认值，可由AI覆盖
+    ui_label_target: uiLabelTarget,
+    can_do_examples: canDoExamples,
     daily_minutes: dailyMinutes,
     days_per_week: daysPerWeek,
     weeks,
