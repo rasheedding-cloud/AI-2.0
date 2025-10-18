@@ -1,14 +1,23 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:vercel",
   "outputDirectory": ".next",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "rootDirectory": ".",
   "env": {
     "FEATURE_MILESTONES_V2": "true",
     "FEATURE_DYNAMIC_GATES": "true",
     "FEATURE_DYNAMIC_GATES_UI": "true",
     "NEXT_PUBLIC_FEATURE_DYNAMIC_GATES_UI": "true",
-    "FEATURE_GOAL_ASSESSOR_V2": "true"
+    "FEATURE_GOAL_ASSESSOR_V2": "true",
+    "NODE_ENV": "production",
+    "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "build": {
+    "env": {
+      "NEXT_TURBOPACK": "0",
+      "NODE_OPTIONS": "--max-old-space-size=4096"
+    }
   }
 }
