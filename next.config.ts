@@ -78,8 +78,6 @@ const nextConfig: NextConfig = {
     },
   } : {}),
 
-  // 启用SWC压缩以提高性能
-  swcMinify: true,
-};
+  };
 
 export default nextConfig;
