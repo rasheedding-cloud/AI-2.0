@@ -298,92 +298,264 @@ export function finalizePlanOption(
 }
 
 /**
- * 生成基于用户偏好的三档方案
+ * 检查目标可行性
+ * 基于4节课/天×6天/周的最大强度模式判断是否能在目标日期前达标
  */
-export function generateThreeTiers(intake: Intake): {
+function checkFeasibility(
+  totalMinutes: number,
+  deadlineWeeks: number | null,
+  intake: Intake
+): { feasible: boolean; reason?: string } {
+  if (!deadlineWeeks) {
+    return { feasible: true }; // 没有截止日期约束，总是可行的
+  }
+
+  // 计算最大可能的学习强度：4节课/天 × 6天/周
+  const maxDailyLessons = 4;
+  const maxDaysPerWeek = 6;
+  const maxDailyMinutes = maxDailyLessons * LESSON_MINUTES; // 4 × 25 = 100分钟
+  const maxMinutesPerWeek = maxDailyMinutes * maxDaysPerWeek; // 100 × 6 = 600分钟/周
+
+  // 计算在最大强度下需要的周数
+  const minRequiredWeeks = weeksNeeded(totalMinutes, maxMinutesPerWeek);
+
+  if (minRequiredWeeks > deadlineWeeks) {
+    return {
+      feasible: false,
+      reason: `即使在最大学习强度（4节课/天×6天/周）下，也需要${minRequiredWeeks}周，但目标期限只有${deadlineWeeks}周`
+    };
+  }
+
+  return { feasible: true };
+}
+
+/**
+ * 计算标准方案
+ * 基于学员水平和目标，计算最优学习强度
+ */
+function calculateStandardPlan(
+  totalMinutes: number,
+  intake: Intake,
+  deadlineWeeks: number | null
+): {
+  dailyMinutes: number;
+  daysPerWeek: number;
+  weeks: number;
+} {
+  const baseDaysPerWeek = intake.study_days_per_week || 5;
+  const baseDailyMinutes = intake.daily_minutes_pref || 60;
+
+  // 如果有截止日期约束，基于时间限制计算所需强度
+  if (deadlineWeeks) {
+    // 计算达到目标需要的每周学习时间
+    const requiredMinutesPerWeek = Math.ceil(totalMinutes / deadlineWeeks);
+
+    // 基于学员的每周学习天数偏好，计算需要的每日学习时间
+    let optimalDailyMinutes = Math.ceil(requiredMinutesPerWeek / baseDaysPerWeek);
+
+    // 确保每日学习时间在合理范围内（25-100分钟）
+    optimalDailyMinutes = Math.max(LESSON_MINUTES, Math.min(100, optimalDailyMinutes));
+
+    // 计算实际需要的每周天数
+    let optimalDaysPerWeek = Math.ceil(requiredMinutesPerWeek / optimalDailyMinutes);
+    optimalDaysPerWeek = Math.max(3, Math.min(6, optimalDaysPerWeek));
+
+    const actualMinutesPerWeek = optimalDailyMinutes * optimalDaysPerWeek;
+    const weeks = weeksNeeded(totalMinutes, actualMinutesPerWeek);
+
+    return {
+      dailyMinutes: optimalDailyMinutes,
+      daysPerWeek: optimalDaysPerWeek,
+      weeks
+    };
+  }
+
+  // 没有截止日期约束，使用学员偏好
+  return {
+    dailyMinutes: baseDailyMinutes,
+    daysPerWeek: baseDaysPerWeek,
+    weeks: weeksNeeded(totalMinutes, baseDailyMinutes * baseDaysPerWeek)
+  };
+}
+
+/**
+ * 生成轻松方案
+ * 标准强度的50%，最低1节课/天
+ */
+function generateLightPlan(
+  standardPlan: { dailyMinutes: number; daysPerWeek: number; weeks: number },
+  totalMinutes: number
+): {
+  dailyMinutes: number;
+  daysPerWeek: number;
+  weeks: number;
+} {
+  // 计算轻松方案的每日学习时间：标准强度的50%
+  let lightDailyMinutes = Math.ceil(standardPlan.dailyMinutes * 0.5);
+
+  // 确保最低1节课/天（25分钟）
+  lightDailyMinutes = Math.max(LESSON_MINUTES, lightDailyMinutes);
+
+  // 保持与标准方案相同的学习天数，但可以适当减少
+  let lightDaysPerWeek = Math.max(3, standardPlan.daysPerWeek - 1);
+
+  const actualMinutesPerWeek = lightDailyMinutes * lightDaysPerWeek;
+  const weeks = weeksNeeded(totalMinutes, actualMinutesPerWeek);
+
+  return {
+    dailyMinutes: lightDailyMinutes,
+    daysPerWeek: lightDaysPerWeek,
+    weeks
+  };
+}
+
+/**
+ * 生成激进方案
+ * 标准强度的150%，最高4节课/天
+ */
+function generateIntensivePlan(
+  standardPlan: { dailyMinutes: number; daysPerWeek: number; weeks: number },
+  totalMinutes: number
+): {
+  dailyMinutes: number;
+  daysPerWeek: number;
+  weeks: number;
+} {
+  // 计算激进方案的每日学习时间：标准强度的150%
+  let intensiveDailyMinutes = Math.ceil(standardPlan.dailyMinutes * 1.5);
+
+  // 确保最高4节课/天（100分钟）
+  intensiveDailyMinutes = Math.min(100, intensiveDailyMinutes);
+
+  // 保持与标准方案相同的学习天数，但可以适当增加
+  let intensiveDaysPerWeek = Math.min(6, standardPlan.daysPerWeek + 1);
+
+  const actualMinutesPerWeek = intensiveDailyMinutes * intensiveDaysPerWeek;
+  const weeks = weeksNeeded(totalMinutes, actualMinutesPerWeek);
+
+  return {
+    dailyMinutes: intensiveDailyMinutes,
+    daysPerWeek: intensiveDaysPerWeek,
+    weeks
+  };
+}
+
+/**
+ * 构建PlanOption对象
+ */
+function buildPlanOption(
+  tier: 'light' | 'standard' | 'intensive',
+  planConfig: { dailyMinutes: number; daysPerWeek: number; weeks: number },
+  totalMinutes: number,
+  startBand: DifficultyBand,
+  targetBand: DifficultyBand,
+  intake: Intake,
+  recommendedTrack: string
+): PlanOption {
+  const { dailyMinutes, daysPerWeek, weeks } = planConfig;
+  const lessons = totalLessonsRequired(totalMinutes);
+  const finishDate = finishDateEst(weeks);
+
+  const diagnosis = diagnoseFeasibility({
+    ...intake,
+    daily_minutes_pref: dailyMinutes,
+    study_days_per_week: daysPerWeek,
+  }, weeks, totalMinutes);
+
+  // 生成月度里程碑
+  const monthlyMilestones = generateMonthlyMilestones(recommendedTrack, weeks, tier);
+
+  return {
+    tier,
+    track: recommendedTrack,
+    ui_label_current: '英语基础', // 默认值，可由AI覆盖
+    ui_label_target: getTrackTargetLabel(recommendedTrack), // 默认值，可由AI覆盖
+    can_do_examples: generateTrackExamples(recommendedTrack, getTierLevel(tier)), // 默认值，可由AI覆盖
+    daily_minutes: dailyMinutes,
+    days_per_week: daysPerWeek,
+    weeks,
+    finish_date_est: finishDate,
+    lessons_total: lessons,
+    diagnosis: diagnosis.color,
+    diagnosis_tips: diagnosis.tips,
+    monthly_milestones_one_line: monthlyMilestones,
+  };
+}
+
+/**
+ * 生成基于新逻辑的三档方案
+ * 基于学员初始水平和目标水平的差值计算总学习时长
+ * 参照学员设置的每天可学习时长、每周学习天数以及目标达成日期来计算学习强度
+ */
+export async function generateThreeTiers(intake: Intake): Promise<{
   light: PlanOption;
   standard: PlanOption;
   intensive: PlanOption;
-} {
-  const userPreference = snapUserPreferenceToTier(intake.daily_minutes_pref || 60);
-  const baseDaysPerWeek = intake.study_days_per_week || 5;
-
+  feasibility: {
+    feasible: boolean;
+    reason?: string;
+  };
+}> {
   // 使用统一的起点推断逻辑，确保前后端一致
   const startBand = inferStartBand(intake);
+  const targetBand: DifficultyBand = await inferTargetBandFromIntake(intake);
 
-  // 围定目标为B1（可根据需求调整）
-  const targetBand: DifficultyBand = inferTargetBandFromIntake(intake);
+  // 基于学员初始水平和目标水平的差值计算总学习时长
   const totalMinutes = totalMinutesRequired(startBand, targetBand);
+
+  // 获取截止日期约束
+  const deadlineWeeks = weeksFromDeadline(intake.deadline_date);
+
+  // 检查目标可行性
+  const feasibility = checkFeasibility(totalMinutes, deadlineWeeks, intake);
+
+  // 如果目标不可行，仍然返回方案，但标记为不可行
+  if (!feasibility.feasible) {
+    console.warn('目标不可行:', feasibility.reason);
+  }
 
   // 使用智能轨道推荐，如果没有指定则根据目标智能推荐
   const recommendedTrack = intake.track_override || recommendLearningTrack(intake);
 
-  console.log('计算学习方案:', {
+  console.log('计算学习方案（新逻辑）:', {
     startBand,
     targetBand,
     totalMinutes,
+    deadlineWeeks,
     recommendedTrack,
     userLevel: intake.self_assessed_level || '未提供',
     zeroBase: intake.zero_base,
     selfAssessedLevel: intake.self_assessed_level,
-    goalText: intake.goal_free_text
+    goalText: intake.goal_free_text,
+    feasible: feasibility.feasible
   });
 
-  // 生成三档的档位设置 - 使用固定的合理配置
-  const tiers = {
-    light: {
-      tier: 'light' as const,
-      daily_minutes: 30,  // 固定30分钟=1节课+5分钟复习
-      days_per_week: Math.max(3, baseDaysPerWeek - 1),
-    },
-    standard: {
-      tier: 'standard' as const,
-      daily_minutes: 50,  // 固定50分钟=2节课
-      days_per_week: baseDaysPerWeek,
-    },
-    intensive: {
-      tier: 'intensive' as const,
-      daily_minutes: 75,  // 固定75分钟=3节课
-      days_per_week: Math.min(6, baseDaysPerWeek + 1),
-    }
+  // 计算标准方案：基于计算得到的最优强度
+  const standardPlan = calculateStandardPlan(totalMinutes, intake, deadlineWeeks);
+
+  // 生成轻松方案：标准强度的50%（最低1节课/天）
+  const lightPlan = generateLightPlan(standardPlan, totalMinutes);
+
+  // 生成激进方案：标准强度的150%（最高4节课/天）
+  const intensivePlan = generateIntensivePlan(standardPlan, totalMinutes);
+
+  // 构建最终的PlanOption对象
+  const light = buildPlanOption('light', lightPlan, totalMinutes, startBand, targetBand, intake, recommendedTrack);
+  const standard = buildPlanOption('standard', standardPlan, totalMinutes, startBand, targetBand, intake, recommendedTrack);
+  const intensive = buildPlanOption('intensive', intensivePlan, totalMinutes, startBand, targetBand, intake, recommendedTrack);
+
+  console.log('生成的三档方案:', {
+    light: { daily: light.daily_minutes, days: light.days_per_week, weeks: light.weeks },
+    standard: { daily: standard.daily_minutes, days: standard.days_per_week, weeks: standard.weeks },
+    intensive: { daily: intensive.daily_minutes, days: intensive.days_per_week, weeks: intensive.weeks }
+  });
+
+  return {
+    light,
+    standard,
+    intensive,
+    feasibility
   };
-
-  // 计算每档的实际数据
-  const results: any = {};
-
-  for (const [tierName, config] of Object.entries(tiers)) {
-    const mpw = minutesPerWeek(config.daily_minutes, config.days_per_week);
-    const weeks = weeksNeeded(totalMinutes, mpw);
-    const lessons = totalLessonsRequired(totalMinutes);
-    const finishDate = finishDateEst(weeks);
-
-    const diagnosis = diagnoseFeasibility({
-      ...intake,
-      daily_minutes_pref: config.daily_minutes,
-      study_days_per_week: config.days_per_week,
-    }, weeks, totalMinutes);
-
-    // 生成默认的月度里程碑 - 传递tier参数以生成差异化内容
-    const monthlyMilestones = generateMonthlyMilestones(recommendedTrack, weeks, tierName);
-
-    results[tierName] = {
-      tier: tierName,
-      track: recommendedTrack,
-      ui_label_current: '英语基础', // 默认值，可由AI覆盖
-      ui_label_target: getTrackTargetLabel(recommendedTrack), // 默认值，可由AI覆盖
-      can_do_examples: generateTrackExamples(recommendedTrack, getTierLevel(tierName)), // 默认值，可由AI覆盖
-      daily_minutes: config.daily_minutes,
-      days_per_week: config.days_per_week,
-      weeks,
-      finish_date_est: finishDate,
-      lessons_total: lessons,
-      diagnosis: diagnosis.color,
-      diagnosis_tips: diagnosis.tips,
-      monthly_milestones_one_line: monthlyMilestones,
-    };
-  }
-
-  return results;
 }
 
 /**

@@ -164,13 +164,13 @@ export default function PlanDetailPage() {
   };
 
   // 动态生成模拟课程大纲
-  const generateMockSyllabus = (plan: any): FirstMonthSyllabus => {
+  const generateMockSyllabus = async (plan: any): Promise<FirstMonthSyllabus> => {
     const track = plan?.track || 'work';
     const currentWeek = new Date().getDate() > 15 ? 3 : 1; // 如果月中，从第三周开始
 
     // 获取用户的起始和目标CEFR级别
     const startBand = inferStartBand(plan);
-    const targetBand = inferTargetBandFromIntake(plan);
+    const targetBand = await inferTargetBandFromIntake(plan);
 
     // 从选中的方案数据中获取学习安排，而不是用户输入数据
     const dailyMinutes = plan?.daily_minutes || 60; // 默认60分钟
@@ -622,7 +622,7 @@ export default function PlanDetailPage() {
           console.warn('AI课程大纲生成失败，使用模拟数据:', error);
 
           // 如果AI生成失败，使用动态生成的模拟数据作为回退
-          const fallbackSyllabus = generateMockSyllabus(planData);
+          const fallbackSyllabus = await generateMockSyllabus(planData);
           setSyllabus(fallbackSyllabus);
           localStorage.setItem('syllabus', JSON.stringify(fallbackSyllabus));
         }
@@ -646,7 +646,7 @@ export default function PlanDetailPage() {
         console.warn('发生错误，确保至少显示月度计划');
 
         // 使用动态生成的数据作为最后的回退
-        const emergencyFallbackSyllabus = generateMockSyllabus(planData);
+        const emergencyFallbackSyllabus = await generateMockSyllabus(planData);
         setSyllabus(emergencyFallbackSyllabus);
         setIsLoading(false);
       }

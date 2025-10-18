@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     console.log('🎯 测试CEFR目标推断:', intake.goal_free_text);
     console.log('📚 轨道:', intake.track_override);
 
-    const targetBand = inferTargetBandFromIntake(intake);
+    const targetBand = await inferTargetBandFromIntake(intake);
 
     return NextResponse.json({
       success: true,

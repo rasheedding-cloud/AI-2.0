@@ -691,7 +691,7 @@ class AIService {
       let calculatedPlans: PlanOption[];
       try {
         console.log('使用数学计算生成三档方案...');
-        const tieredPlans = generateThreeTiers(validatedIntake);
+        const tieredPlans = await generateThreeTiers(validatedIntake);
         calculatedPlans = [tieredPlans.light, tieredPlans.standard, tieredPlans.intensive];
         console.log('数学计算方案生成成功:', calculatedPlans);
       } catch (calcError) {
@@ -747,7 +747,7 @@ class AIService {
 
       // 后端统一复算：确保所有计算都通过finalizePlanOption
       const startBand = inferStartBand(validatedIntake);
-      const targetBand = inferTargetBandFromIntake(validatedIntake); // 从用户目标推断目标难度
+      const targetBand = await inferTargetBandFromIntake(validatedIntake); // 从用户目标推断目标难度
 
       console.log('后端复算参数:', { startBand, targetBand });
 
@@ -901,7 +901,7 @@ class AIService {
       // 应用里程碑v2系统（如果启用）
       let finalMonthlyPlan = processedMonthlyPlan;
       if (MILESTONE_V2_FEATURES.FEATURE_MILESTONES_V2) {
-        finalMonthlyPlan = this.applyMilestonesV2(processedMonthlyPlan, validatedPlan, validatedIntake);
+        finalMonthlyPlan = await this.applyMilestonesV2(processedMonthlyPlan, validatedPlan, validatedIntake);
       }
 
       const validatedMonthlyPlan = validateAndParse(monthlyPlanSchema, finalMonthlyPlan);
@@ -1017,7 +1017,7 @@ class AIService {
 
       // 热修Hook：难度封顶 + 轻量降级规则
       const startBand = inferStartBand(validatedIntake);
-      const targetBand = inferTargetBandFromIntake(validatedIntake);
+      const targetBand = await inferTargetBandFromIntake(validatedIntake);
       const fixed = hotfixClamp(validatedMonthlyPlan, validatedSyllabus, startBand, targetBand);
 
       // 更新月度计划和首月大纲
@@ -1408,14 +1408,14 @@ class AIService {
   }
 
   // 应用里程碑v2系统
-  private applyMilestonesV2(monthlyPlan: any, chosenPlan: any, intake: any): any {
+  private async applyMilestonesV2(monthlyPlan: any, chosenPlan: any, intake: any): Promise<any> {
     try {
       const isShadow = MILESTONE_V2_FEATURES.MILESTONES_SHADOW;
 
       // 构建计划上下文
       const context: PlanContext = {
         startBand: inferStartBand(intake),
-        targetBand: inferTargetBandFromIntake(intake),
+        targetBand: await inferTargetBandFromIntake(intake),
         totalWeeks: chosenPlan.weeks,
         minutesPerWeek: chosenPlan.daily_minutes * chosenPlan.days_per_week,
         track: chosenPlan.track || 'daily',

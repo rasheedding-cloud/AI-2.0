@@ -386,12 +386,111 @@ export async function assessGoalCEFRv2(
 // 工具函数：转换为我们现有的DifficultyBand类型
 export function convertToLegacyDifficultyBand(cefrBand: CefrBand): string {
   const mapping: Record<CefrBand, string> = {
+    'A1-': 'A1',
+    'A1': 'A1',
+    'A1+': 'A1',
     'A2-': 'A2',
     'A2': 'A2',
     'A2+': 'A2',
     'B1-': 'B1',
-    'B1': 'B1'
+    'B1': 'B1',
+    'B1+': 'B1',
+    'B2-': 'B2',
+    'B2': 'B2',
+    'B2+': 'B2',
+    'C1-': 'C1',
+    'C1': 'C1',
+    'C1+': 'C1',
+    'C2-': 'C2',
+    'C2': 'C2'
   };
 
   return mapping[cefrBand] || 'A2';
+}
+
+// 新增：基于目标描述直接推断目标等级的简化函数
+export async function assessTargetLevelFromGoal(
+  goalText: string,
+  currentLevel?: string,
+  llmAdapter?: LLMAdapter
+): Promise<{
+  targetBand: string;
+  confidence: number;
+  rationale: string;
+}> {
+  try {
+    // 如果没有提供适配器，创建默认的Gemini适配器
+    if (!llmAdapter) {
+      const { createLLMAdapter } = await import('@/lib/llm/adapter');
+      const adapter = createLLMAdapter();
+      llmAdapter = adapter;
+    }
+
+    const prompt = `请根据学员的学习目标描述，推断最适合的CEFR英语等级目标。
+
+**学员目标**: "${goalText}"
+**当前水平**: ${currentLevel || '未提供'}
+
+**CEFR等级标准**:
+- A1 (90-120小时): 基础日常英语，简单问候和自我介绍
+- A2 (180-200小时): 独立生活英语，处理日常事务
+- B1 (350-400小时): 职场英语交流，基础工作沟通
+- B2 (500-600小时): 专业流利英语，深度工作交流
+- C1 (700-800小时): 接近母语英语，复杂专业讨论
+- C2 (1000-1200小时): 英语母语水平，完全自如
+
+**请返回JSON格式**:
+{
+  "target_band": "最合适的CEFR等级",
+  "confidence": 0.85,
+  "rationale": "详细解释为什么这个等级最适合学员的目标"
+}
+
+**判断原则**:
+1. 日常工作需要 → B1-B2
+2. 学术研究需要 → B2-C1
+3. 旅行交流需要 → A2-B1
+4. 考试目标需要 → 根据考试级别判断
+5. 接近母语需要 → C1-C2
+
+请返回严格JSON格式：`;
+
+    const result = await llmAdapter.chat({
+      system: "你是一位专业的CEFR英语等级评估专家。请准确分析学员目标并给出合适的等级建议。",
+      prompt: prompt,
+      temperature: 0.1
+    });
+
+    // 尝试解析JSON
+    let parsed;
+    try {
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found');
+      }
+    } catch {
+      // 如果解析失败，返回默认结果
+      parsed = {
+        target_band: 'B1',
+        confidence: 0.5,
+        rationale: '基于目标描述的默认评估'
+      };
+    }
+
+    return {
+      targetBand: convertToLegacyDifficultyBand(parsed.target_band),
+      confidence: parsed.confidence || 0.7,
+      rationale: parsed.rationale || '基于目标描述的分析'
+    };
+
+  } catch (error) {
+    console.error('目标水平推断失败:', error);
+    return {
+      targetBand: 'B1', // 默认目标
+      confidence: 0.5,
+      rationale: '基于目标描述的保守评估结果'
+    };
+  }
 }

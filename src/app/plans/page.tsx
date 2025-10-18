@@ -88,7 +88,7 @@ export default function PlansPage() {
 
         try {
           // 使用数学计算生成三档方案
-          const calculatedTiers = generateThreeTiers(userData);
+          const calculatedTiers = await generateThreeTiers(userData);
           const track = userData.track_override || 'daily';
           const trackTarget = getTrackTargetLabel(track);
 

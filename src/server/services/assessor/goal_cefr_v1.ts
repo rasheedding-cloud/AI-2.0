@@ -20,7 +20,7 @@ export interface V1AssessmentResult {
  */
 export async function assessGoalCEFRv1(intake: Intake): Promise<V1AssessmentResult> {
   // 使用现有的推断逻辑
-  const targetBand = inferTargetBandFromIntake(intake);
+  const targetBand = await inferTargetBandFromIntake(intake);
   const track = intake.track_override || recommendLearningTrack(intake);
 
   // 简单的置信度计算
