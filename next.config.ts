@@ -21,8 +21,10 @@ const nextConfig: NextConfig = {
   // 开发环境配置
   experimental: {
     // 禁用可能导致问题的实验性功能
-    serverComponentsExternalPackages: [],
   },
+
+  // 服务器外部包配置
+  serverExternalPackages: [],
 
   // Webpack配置优化 (仅在构建时生效)
   ...(process.env.NODE_ENV === 'production' ? {
@@ -76,8 +78,8 @@ const nextConfig: NextConfig = {
     },
   } : {}),
 
-  // 禁用SWC压缩以避免开发环境问题
-  swcMinify: false,
+  // 启用SWC压缩以提高性能
+  swcMinify: true,
 };
 
 export default nextConfig;
