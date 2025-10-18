@@ -65,18 +65,19 @@ export const createGenerateSyllabusPrompt = (
 
 ### 学员当前状态
 - **起点水平**: ${intake.self_assessed_level || '未提供'}
-- **CEFR时长标准**: B2水平需要600-800小时累计学习
-- **学员当前累计**: 约${intake.self_assessed_level === 'B2' ? '600-800小时' : intake.self_assessed_level === 'B1' ? '400-600小时' : intake.self_assessed_level === 'A2' ? '200-400小时' : '基础水平'}
+- **CEFR时长标准**: B2水平需要500-600小时累计学习 (1000-1200节25分钟外教课)
+- **学员当前累计**: 约${intake.self_assessed_level === 'B2' ? '500-600小时(1000-1200节课)' : intake.self_assessed_level === 'B1' ? '350-400小时(700-800节课)' : intake.self_assessed_level === 'A2' ? '180-200小时(360-400节课)' : intake.self_assessed_level === 'A1' ? '90-120小时(180-240节课)' : '基础水平'}
 
 ### 学习计划分析
 - **本计划学习时长**: ${daily_minutes}分钟/天 × ${days_per_week}天/周 × 4周 = ${daily_minutes * days_per_week * 4}分钟 = ${Math.round((daily_minutes * days_per_week * 4) / 60)}小时/月
-- **累计学习预期**: 起点 + 本月计划 = ${intake.self_assessed_level === 'B2' ? `600-800 + ${Math.round((daily_minutes * days_per_week * 4) / 60)} = ${600 + Math.round((daily_minutes * days_per_week * 4) / 60)}-${800 + Math.round((daily_minutes * days_per_week * 4) / 60)}小时` : '根据起点计算'}
+- **换算课程数量**: ${Math.round((daily_minutes * days_per_week * 4) / 60)}小时 × 2 = ${Math.round((daily_minutes * days_per_week * 4) / 30)}节25分钟外教课/月
+- **累计学习预期**: 起点 + 本月计划 = ${intake.self_assessed_level === 'B2' ? `500-600小时(1000-1200节课) + ${Math.round((daily_minutes * days_per_week * 4) / 60)}小时(${Math.round((daily_minutes * days_per_week * 4) / 30)}节课) = ${500 + Math.round((daily_minutes * days_per_week * 4) / 60)}-${600 + Math.round((daily_minutes * days_per_week * 4) / 60)}小时(${1000 + Math.round((daily_minutes * days_per_week * 4) / 30)}-${1200 + Math.round((daily_minutes * days_per_week * 4) / 30)}节课)` : intake.self_assessed_level === 'B1' ? `350-400小时(700-800节课) + ${Math.round((daily_minutes * days_per_week * 4) / 60)}小时(${Math.round((daily_minutes * days_per_week * 4) / 30)}节课) = ${350 + Math.round((daily_minutes * days_per_week * 4) / 60)}-${400 + Math.round((daily_minutes * days_per_week * 4) / 60)}小时(${700 + Math.round((daily_minutes * days_per_week * 4) / 30)}-${800 + Math.round((daily_minutes * days_per_week * 4) / 30)}节课)` : intake.self_assessed_level === 'A2' ? `180-200小时(360-400节课) + ${Math.round((daily_minutes * days_per_week * 4) / 60)}小时(${Math.round((daily_minutes * days_per_week * 4) / 30)}节课) = ${180 + Math.round((daily_minutes * days_per_week * 4) / 60)}-${200 + Math.round((daily_minutes * days_per_week * 4) / 60)}小时(${360 + Math.round((daily_minutes * days_per_week * 4) / 30)}-${400 + Math.round((daily_minutes * days_per_week * 4) / 30)}节课)` : intake.self_assessed_level === 'A1' ? `90-120小时(180-240节课) + ${Math.round((daily_minutes * days_per_week * 4) / 60)}小时(${Math.round((daily_minutes * days_per_week * 4) / 30)}节课) = ${90 + Math.round((daily_minutes * days_per_week * 4) / 60)}-${120 + Math.round((daily_minutes * days_per_week * 4) / 60)}小时(${180 + Math.round((daily_minutes * days_per_week * 4) / 30)}-${240 + Math.round((daily_minutes * days_per_week * 4) / 30)}节课)` : '根据起点计算'}
 - **第1月合理难度**: ${firstMonthMilestone.max_target_band} (基于CEFR标准)
 
 ### 🚨 CEFR标准要求
-- **绝不倒退**: B2起点(600-800小时) + 75小时学习 = B2+水平(≈700-875小时)
+- **绝不倒退**: B2起点(500-600小时, 1000-1200节课) + 月度学习 = B2+水平
 - **内容难度匹配**: 课程内容必须符合B2+水平，不能是A2
-- **现实预期**: 75小时不足以让B2学员达到C1水平，需要更多时间
+- **现实预期**: 一个月的学习不足以让B2学员达到C1水平，需要更多时间
 
 ## 基础信息
 - 学习轨道：${track}

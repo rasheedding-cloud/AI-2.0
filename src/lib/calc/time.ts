@@ -6,26 +6,30 @@ import { assessGoalCEFR, FEATURE_FLAGS } from '@/server/services/assessor';
 
 // 基础计算常量
 export const LESSON_MINUTES = 25; // 25分钟一课
+export const HOURS_PER_LESSON = 0.5; // 每节课0.5小时
+export const LESSONS_PER_HOUR = 2; // 每小时2节25分钟课
 
 /**
  * 阶梯式学习时间需求（分钟）
  * 每个级别代表达到该水平所需的累计学习时间
- * 修正为更合理的学习时间分配
+ * 基于英语CEFR标准：1小时 = 2节25分钟外教课
  */
 export const BAND_PROGRESS_MINUTES: Record<string, number> = {
   'Pre-A': 0,      // 零基础
-  'A1-': 1800,     // 基础入门 (30小时)
-  'A1': 3600,      // A1水平 (60小时)
-  'A1+': 5400,     // A1进阶 (90小时)
-  'A2-': 7200,     // A2预备 (120小时)
-  'A2': 9000,      // A2水平 (150小时)
-  'A2+': 10800,    // A2进阶 (180小时)
-  'B1-': 12600,    // B1预备 (210小时)
-  'B1': 14400,     // B1水平 (240小时)
-  'B1+': 18000,    // B1进阶 (300小时)
-  'B2': 24000,     // B2水平 (400小时) - 雅思6.0-6.5分
-  'B2+': 30000,    // B2进阶 (500小时) - 雅思7.0分
-  'C1': 40000,     // C1水平 (667小时) - 雅思8.0分
+  'A1-': 5400,     // 基础入门 (90小时 = 180节课)
+  'A1': 10500,     // A1水平 (175小时 = 350节课，取90-120小时中值)
+  'A1+': 14400,    // A1进阶 (240小时 = 480节课)
+  'A2-': 18000,    // A2预备 (300小时 = 600节课)
+  'A2': 22800,     // A2水平 (380小时 = 760节课，取180-200小时中值)
+  'A2+': 28800,    // A2进阶 (480小时 = 960节课)
+  'B1-': 37800,    // B1预备 (630小时 = 1260节课)
+  'B1': 45000,     // B1水平 (750小时 = 1500节课，取350-400小时中值)
+  'B1+': 54000,    // B1进阶 (900小时 = 1800节课)
+  'B2': 66000,     // B2水平 (1100小时 = 2200节课，取500-600小时中值)
+  'B2+': 72000,    // B2进阶 (1200小时 = 2400节课)
+  'C1': 90000,     // C1水平 (1500小时 = 3000节课，取700-800小时中值)
+  'C1+': 108000,   // C1进阶 (1800小时 = 3600节课)
+  'C2': 132000,    // C2水平 (2200小时 = 4400节课，取1000-1200小时中值)
 };
 
 /**
@@ -71,6 +75,22 @@ export function snapUserPreferenceToTier(userMinutes: number): {
  */
 export function minutesPerWeek(dailyMinutes: number, daysPerWeek: number): number {
   return Math.max(1, Math.round(dailyMinutes)) * Math.max(1, daysPerWeek);
+}
+
+/**
+ * 换算学习时间到课程数量
+ * 基于1小时 = 2节25分钟外教课的换算
+ */
+export function hoursToLessons(hours: number): number {
+  return Math.round(hours * LESSONS_PER_HOUR);
+}
+
+/**
+ * 换算课程数量到学习时间
+ * 基于2节25分钟外教课 = 1小时的换算
+ */
+export function lessonsToHours(lessons: number): number {
+  return Math.round(lessons * HOURS_PER_LESSON * 10) / 10; // 保留1位小数
 }
 
 /**
