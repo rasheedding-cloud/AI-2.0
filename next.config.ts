@@ -26,9 +26,10 @@ const nextConfig: NextConfig = {
   // 服务器外部包配置
   serverExternalPackages: [],
 
-  // Webpack配置优化 (仅在构建时生效)
-  ...(process.env.NODE_ENV === 'production' ? {
-    webpack: (config, { isServer }) => {
+  // Webpack配置优化 (仅在非Turbopack模式下生效)
+  webpack: (config, { isServer }) => {
+    // 仅在非Turbopack模式下应用webpack优化
+    if (!process.env.TURBOPACK) {
       // 生产环境优化
       if (!isServer) {
         config.resolve.fallback = {
@@ -73,13 +74,10 @@ const nextConfig: NextConfig = {
           },
         },
       };
+    }
 
-      return config;
-    },
-  } : {}),
-
-  // 启用SWC压缩以提高性能
-  swcMinify: true,
+    return config;
+  },
 };
 
 export default nextConfig;
