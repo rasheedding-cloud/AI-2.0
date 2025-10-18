@@ -39,6 +39,14 @@ export interface Question {
     scene: 'daily' | 'work' | 'travel' | 'academic';  // 场景锚定
     domain: string;    // 细分领域
     skill: string;     // 技能类型：listening/reading/vocabulary
+
+    // v1.1 新增字段
+    scored: boolean;   // 是否计入评分（v1.1只计≤3题）
+    listening_speed_wpm?: {  // 听力语速（词/分钟）
+      A2: { min: number; max: number };
+      'B1-': { min: number; max: number };
+    };
+    difficulty_score: number;  // 题目难度分（0-3）
   };
 }
 
@@ -66,7 +74,13 @@ const QUESTIONS: Question[] = [
     metadata: {
       scene: 'daily',
       domain: 'greetings',
-      skill: 'listening'
+      skill: 'listening',
+      scored: true,  // 前3题计分
+      listening_speed_wpm: {
+        A2: { min: 110, max: 130 },
+        'B1-': { min: 120, max: 140 }
+      },
+      difficulty_score: 1  // A1级别难度
     }
   },
 
@@ -92,7 +106,9 @@ const QUESTIONS: Question[] = [
     metadata: {
       scene: 'travel',
       domain: 'navigation',
-      skill: 'reading'
+      skill: 'reading',
+      scored: true,  // 前3题计分
+      difficulty_score: 1  // A1级别难度
     }
   },
 
@@ -118,7 +134,13 @@ const QUESTIONS: Question[] = [
     metadata: {
       scene: 'travel',
       domain: 'transportation',
-      skill: 'listening'
+      skill: 'listening',
+      scored: true,  // 前3题计分
+      listening_speed_wpm: {
+        A2: { min: 110, max: 130 },
+        'B1-': { min: 120, max: 140 }
+      },
+      difficulty_score: 2  // A2级别难度
     }
   },
 
@@ -385,4 +407,18 @@ export function filterQuestionsByScene(questions: Question[], scene: Question['m
  */
 export function filterQuestionsBySkill(questions: Question[], skill: Question['metadata']['skill']): Question[] {
   return questions.filter(q => q.metadata.skill === skill);
+}
+
+/**
+ * 获取计分题目（v1.1功能）
+ */
+export function getScoredQuestions(questions: Question[], maxCount: number = 3): Question[] {
+  return questions.filter(q => q.metadata.scored).slice(0, maxCount);
+}
+
+/**
+ * 获取练习题目（不计分）
+ */
+export function getPracticeQuestions(questions: Question[]): Question[] {
+  return questions.filter(q => !q.metadata.scored);
 }

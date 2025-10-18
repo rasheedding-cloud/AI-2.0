@@ -15,8 +15,8 @@ const translations = {
   zh: {
     title: '测试完成！',
     subtitle: '您的英语水平评估结果',
-    yourLevel: '您的英语水平',
-    confidence: '置信度',
+    yourLevel: '建议起点',
+    confidence: '评估置信度',
     objectiveScore: '客观题得分',
     correct: '正确',
     of: '/',
@@ -32,13 +32,26 @@ const translations = {
     objective: '客观题',
     selfAssessmentText: '自评',
     diagnostic: '能力诊断',
-    metadata: '测试信息'
+    metadata: '测试信息',
+    // v1.1 新增
+    suggestedStart: '起点建议',
+    basicLevel: '基础',
+    intermediateStart: '进阶-起步',
+    intermediate: '进阶',
+    advancedStart: '高级-起步',
+    advanced: '高级',
+    disclaimer: '这只是起点估计，你仍会拿到个性化计划',
+    flags: {
+      insufficient_data: '建议多选经历过的场景；不确定可选"未遇到"。',
+      conflict_obj_scene: '建议完成3分钟听读小测以提高准确度。',
+      self_gap_gt1band: '你的自我感受与小测差距较大，建议从建议起点开始并在首周复核。'
+    }
   },
   en: {
     title: 'Test Complete!',
     subtitle: 'Your English proficiency assessment results',
-    yourLevel: 'Your English Level',
-    confidence: 'Confidence',
+    yourLevel: 'Recommended Starting Point',
+    confidence: 'Assessment Confidence',
     objectiveScore: 'Objective Score',
     correct: 'Correct',
     of: 'of',
@@ -54,12 +67,25 @@ const translations = {
     objective: 'Objective',
     selfAssessmentText: 'Self-Assessment',
     diagnostic: 'Skill Diagnostic',
-    metadata: 'Test Information'
+    metadata: 'Test Information',
+    // v1.1 新增
+    suggestedStart: 'Starting Point Recommendation',
+    basicLevel: 'Basic',
+    intermediateStart: 'Intermediate-Start',
+    intermediate: 'Intermediate',
+    advancedStart: 'Advanced-Start',
+    advanced: 'Advanced',
+    disclaimer: 'This is just a starting point estimate, you will still receive a personalized plan',
+    flags: {
+      insufficient_data: 'Please select more scenes you have experienced; you can choose "Not Encountered" if unsure.',
+      conflict_obj_scene: 'Complete the 3-minute listening and reading test for better accuracy.',
+      self_gap_gt1band: 'Your self-assessment differs significantly from the test results. Start from the recommended point and re-evaluate in the first week.'
+    }
   },
   ar: {
     title: 'اكتمل الاختبار!',
     subtitle: 'نتائج تقييم إتقانك للغة الإنجليزية',
-    yourLevel: 'مستواك في اللغة الإنجليزية',
+    yourLevel: 'نقطة البداية المقترحة',
     confidence: 'مستوى الثقة',
     objectiveScore: 'درجة الاختبار الموضوعي',
     correct: 'صحيح',
@@ -76,10 +102,33 @@ const translations = {
     objective: 'موضوعي',
     selfAssessmentText: 'ذاتي',
     diagnostic: 'تشخيص المهارات',
-    metadata: 'معلومات الاختبار'
+    metadata: 'معلومات الاختبار',
+    // v1.1 新增
+    suggestedStart: 'توصية نقطة البداية',
+    basicLevel: 'أساسي',
+    intermediateStart: 'متوسط-بداية',
+    intermediate: 'متوسط',
+    advancedStart: 'متقدم-بداية',
+    advanced: 'متقدم',
+    disclaimer: 'هذا مجرد تقدير لنقطة البداية، ستحصل على خطة شخصية',
+    flags: {
+      insufficient_data: 'يرجى اختيار المزيد من المشاهد التي مررت بها؛ يمكنك اختيار "لم أواجه" إذا لم تكن متأكداً.',
+      conflict_obj_scene: 'أكمل اختبار الاستماع والقراءة لمدة 3 دقائق للحصول على دقة أفضل.',
+      self_gap_gt1band: 'تقييمك الذاتي يختلف بشكل كبير عن نتائج الاختبار. ابدأ من النقطة المقترحة وأعد التقييم في الأسبوع الأول.'
+    }
   }
 };
 
+// v1.1 微档颜色映射
+const MICRO_BAND_COLORS = {
+  'A2-': 'bg-green-500',
+  'A2': 'bg-blue-500',
+  'A2+': 'bg-indigo-500',
+  'B1-': 'bg-purple-500',
+  'B1': 'bg-orange-500'
+};
+
+// v1 向后兼容的颜色映射
 const LEVEL_COLORS = {
   A1: 'bg-green-500',
   A2: 'bg-blue-500',
@@ -87,6 +136,32 @@ const LEVEL_COLORS = {
   B2: 'bg-orange-500'
 };
 
+// v1.1 微档描述（友好文案，无CEFR术语）
+const MICRO_BAND_DESCRIPTIONS = {
+  zh: {
+    'A2-': '基础 - 开始建立英语学习基础',
+    'A2': '进阶-起步 - 能够进行日常基础交流',
+    'A2+': '进阶 - 在熟悉场景中表达自如',
+    'B1-': '高级-起步 - 能够处理专业场景沟通',
+    'B1': '高级 - 在工作中有效使用英语'
+  },
+  en: {
+    'A2-': 'Basic - Starting to build English foundation',
+    'A2': 'Intermediate-Start - Can handle basic daily communication',
+    'A2+': 'Intermediate - Express yourself confidently in familiar situations',
+    'B1-': 'Advanced-Start - Can handle professional communication scenarios',
+    'B1': 'Advanced - Use English effectively in professional contexts'
+  },
+  ar: {
+    'A2-': 'أساسي - بدء بناء أساس اللغة الإنجليزية',
+    'A2': 'متوسط-بداية - يمكن التعامل مع التواصل اليومي الأساسي',
+    'A2+': 'متوسط - التعبير عن نفسك بثقة في المواقف المألوفة',
+    'B1-': 'متقدم-بداية - يمكن التعامل مع سيناريوهات التواصل المهنية',
+    'B1': 'متقدم - استخدام اللغة الإنجليزية بفعالية في السياقات المهنية'
+  }
+};
+
+// v1 向后兼容的CEFR描述
 const LEVEL_DESCRIPTIONS = {
   zh: {
     A1: '基础水平 - 能够使用简单的英语进行基本交流',
@@ -118,6 +193,11 @@ export function QuickPlacementResults({
 
   const confidencePercentage = Math.round(result.confidence * 100);
   const accuracyPercentage = Math.round(result.breakdown.objective_score.accuracy * 100);
+
+  // v1.1 检查是否有微档数据
+  const hasV1_1Data = result.mapped_start_band && result.band_distribution;
+  const displayBand = hasV1_1Data ? result.mapped_start_band : result.mapped_start;
+  const isMicroBand = hasV1_1Data && ['A2-', 'A2', 'A2+', 'B1-', 'B1'].includes(displayBand);
 
   return (
     <div className={`max-w-4xl mx-auto p-6 ${isRTL ? 'rtl' : 'ltr'}`}>
