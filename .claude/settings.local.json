@@ -37,7 +37,11 @@
       "Bash(git merge:*)",
       "Bash(git branch:*)",
       "Bash(gh repo view:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsx:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

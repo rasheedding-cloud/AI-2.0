@@ -1,424 +1,379 @@
 /**
- * QuickPlacement v1 - 题库系统
- * 支持三语种场景锚定（日常/职场/旅行/学术），共10题客观题
- * 每题包含：题干、音频URL、选项、答案、翻译、CEFR映射
+ * QuickPlacement v1.1 - 题库与场景锚点系统
+ * 支持三语种场景锚定（work/travel/study/daily），仅2题计分
+ * 防泄题设计：题干与选项纯文本，选项随机，答案仅服务端保存
  */
 
-export type QuestionLocale = 'zh' | 'en' | 'ar';
-export type QuestionBank = Record<QuestionLocale, Question[]>;
+import {
+  validateQBankContract,
+  validateObjectives,
+  validateSceneAnchors,
+  type ObjectiveItem,
+  type SceneAnchor
+} from './qb_schema';
 
+export type Track = "work"|"travel"|"study"|"daily";
+export type Skill = "l"|"s"|"r"|"w";  // 听/说/读/写
+export type Band = "A2-"|"A2"|"A2+"|"B1-"|"B1";
+
+// 为了向后兼容，保留旧接口定义
+export interface SceneAnchorLegacy {
+  id: string;
+  band_hint: "A1"|"A2"|"B1-";
+  tracks: Track[];
+  skill: Skill;
+  zh: string;
+  en: string;
+  ar: string; // RTL
+}
+
+// 16个场景锚点（混排A1/A2/B1-；避免关键词暴露层级）
+export const SCENE_ANCHORS: SceneAnchor[] = [
+  // A1（4个）
+  { id:"a1_confirm_single_step", band_hint:"A1", tracks:["work","daily"], skill:"s",
+    zh:"能确认一个单步任务（时间/动作）", en:"Confirm a single-step task (time/action)", ar:"تأكيد مهمة خطوة واحدة (الوقت/الإجراء)" },
+  { id:"a1_3_4_sentence_msg", band_hint:"A1", tracks:["work","daily","study"], skill:"w",
+    zh:"能写3–4句简短确认消息", en:"Write a 3–4 sentence confirmation message", ar:"كتابة رسالة تأكيد من 3–4 جمل" },
+  { id:"a1_spelling_names_time", band_hint:"A1", tracks:["work","travel"], skill:"s",
+    zh:"能拼写姓名和时间并复述", en:"Spell names/times and repeat back", ar:"تهجئة الأسماء/الأوقات وإعادة الصياغة" },
+  { id:"a1_basic_greeting_info", band_hint:"A1", tracks:["daily","travel"], skill:"s",
+    zh:"能礼貌问候并给出基本信息", en:"Greet politely and give basic info", ar:"تحية مهذبة وتقديم معلومات أساسية" },
+
+  // A2（6个）
+  { id:"a2_clarify_3step_task", band_hint:"A2", tracks:["work","study"], skill:"s",
+    zh:"能澄清≤3步任务并复述要点", en:"Clarify ≤3-step task and recap key points", ar:"توضيح مهمة بثلاث خطوات أو أقل وتلخيص النقاط" },
+  { id:"a2_short_plan_45s", band_hint:"A2", tracks:["work","study","daily"], skill:"s",
+    zh:"能在30–45秒说明今日计划", en:"Explain today's plan in 30–45s", ar:"شرح خطة اليوم خلال 30–45 ثانية" },
+  { id:"a2_polite_rephrase", band_hint:"A2", tracks:["work","daily"], skill:"s",
+    zh:"能礼貌请求对方重述并确认", en:"Politely ask to rephrase and confirm", ar:"طلب إعادة الصياغة بأدب والتأكيد" },
+  { id:"a2_read_service_notice", band_hint:"A2", tracks:["travel","daily"], skill:"r",
+    zh:"能读懂服务/公告并抓取时间地点", en:"Read a notice and extract time/place", ar:"قراءة إشعار واستخراج الوقت/المكان" },
+  { id:"a2_write_4_5_confirm", band_hint:"A2", tracks:["work","study","daily"], skill:"w",
+    zh:"能写4–5句确认（含时间/责任/下一步）", en:"Write 4–5 sentence confirmation (time/owner/next)", ar:"كتابة تأكيد من 4–5 جمل (الوقت/المسؤول/الخطوة التالية)" },
+  { id:"a2_handle_counter_issue", band_hint:"A2", tracks:["travel","daily"], skill:"s",
+    zh:"能在柜台说明问题并提出请求", en:"Describe an issue at a counter and request help", ar:"شرح مشكلة عند شباك الخدمة وطلب المساعدة" },
+
+  // B1-（6个）
+  { id:"b1m_standup_60_90s", band_hint:"B1-", tracks:["work","study"], skill:"s",
+    zh:"能做60–90秒结构化更新（背景→状态→下一步）", en:"Do a 60–90s structured update (context→status→next)", ar:"تقديم تحديث من 60–90 ثانية (خلفية→حالة→الخطوة التالية)" },
+  { id:"b1m_compare_options_reason", band_hint:"B1-", tracks:["work","daily"], skill:"s",
+    zh:"能比较两个方案并给出理由/建议", en:"Compare two options and give reasons/advice", ar:"مقارنة خيارين مع ذكر الأسباب/النصيحة" },
+  { id:"b1m_email_6_8_confirm", band_hint:"B1-", tracks:["work","study"], skill:"w",
+    zh:"能写6–8句确认/说明邮件（含理由与下一步）", en:"Write a 6–8 sentence confirmation/explanatory email", ar:"كتابة بريد من 6–8 جمل (تأكيد/توضيح)" },
+  { id:"b1m_handle_complaint_simple", band_hint:"B1-", tracks:["travel","daily"], skill:"s",
+    zh:"能用结构化方式处理简单投诉", en:"Handle a simple complaint in a structured way", ar:"التعامل مع شكوى بسيطة بشكل منظم" },
+  { id:"b1m_read_short_report", band_hint:"B1-", tracks:["work","study"], skill:"r",
+    zh:"能从短报告中提取问题与下一步", en:"Extract problems and next steps from a short report", ar:"استخراج المشكلات والخطوات التالية من تقرير قصير" },
+  { id:"b1m_reasoned_suggestion", band_hint:"B1-", tracks:["work","study","daily"], skill:"s",
+    zh:"能提出建议并给出1–2个理由", en:"Make a suggestion with 1–2 reasons", ar:"تقديم اقتراح مع سبب أو سببين" },
+];
+
+// 客观题：仅2题计分（scored:true）。听力用TTS生成20–30s音频，语速标注。
+export const OBJECTIVES = {
+  listening_q1: {
+    id: "listening_q1",
+    scored: true,
+    level_hint: "A2", // 110–130 wpm
+    transcript_en: "Hi Omar, the client meeting moved from Tuesday 2pm to Wednesday 10am. Please prepare the slides and confirm with Sara.",
+    listening_speed_wpm: {
+      A2: { min: 110, max: 130 },
+      "B1-": { min: 120, max: 140 }
+    },
+    options: {
+      a: { zh:"会议改到周二下午2点", en:"Meeting moved to Tuesday 2pm", ar:"تم نقل الاجتماع إلى الثلاثاء 2 مساءً" },
+      b: { zh:"会议改到周三上午10点", en:"Meeting moved to Wednesday 10am", ar:"تم نقل الاجتماع إلى الأربعاء 10 صباحًا" }, // correct
+      c: { zh:"会议取消", en:"Meeting is canceled", ar:"تم إلغاء الاجتماع" },
+      d: { zh:"需要重新选地点", en:"Location needs to change", ar:"يجب تغيير المكان" }
+    },
+    correct: "b"
+  },
+  reading_q1: {
+    id: "reading_q1",
+    scored: true,
+    level_hint: "A2+",
+    passage_en: "Team update: Ahmed will send the draft by 5pm. Nora reviews in the morning. If approved, we share the final version on Friday.",
+    question_en: "When will the final version be shared?",
+    options: {
+      a: { zh:"周四", en:"Thursday", ar:"الخميس" },
+      b: { zh:"周五", en:"Friday", ar:"الجمعة" }, // correct
+      c: { zh:"今天下午", en:"Today 5pm", ar:"اليوم ٥ مساءً" },
+      d: { zh:"明天上午", en:"Tomorrow morning", ar:"غدًا صباحًا" }
+    },
+    correct: "b"
+  }
+};
+
+// 题目接口（兼容现有系统）
 export interface Question {
   id: string;
-  // 原始语言（英文）内容
   content: {
-    text: string;        // 题目文本
-    audio_url?: string;  // 音频URL（可选）
-    options: string[];   // 选项
-    answer: number;      // 正确答案索引
+    text: string;
+    audio_url?: string;
+    options: string[];
+    answer: number;
   };
-  // 多语言翻译
   translations: {
-    zh: {
-      text: string;
-      options: string[];
-    };
-    ar: {
-      text: string;
-      options: string[];
-    };
+    zh: { text: string; options: string[]; };
+    ar: { text: string; options: string[]; };
   };
-  // CEFR映射
-  cefr_map: {
-    A1: number;  // 答对A1题数
-    A2: number;  // 答对A2题数
-    B1: number;  // 答对B1题数
-    B2: number;  // 答对B2题数
-  };
-  // 题目元数据
+  cefr_map: { A1: number; A2: number; B1: number; B2: number; };
   metadata: {
-    scene: 'daily' | 'work' | 'travel' | 'academic';  // 场景锚定
-    domain: string;    // 细分领域
-    skill: string;     // 技能类型：listening/reading/vocabulary
-
-    // v1.1 新增字段
-    scored: boolean;   // 是否计入评分（v1.1只计≤3题）
-    listening_speed_wpm?: {  // 听力语速（词/分钟）
+    scene: 'daily' | 'work' | 'travel' | 'academic';
+    domain: string;
+    skill: string;
+    scored: boolean;
+    listening_speed_wpm?: {
       A2: { min: number; max: number };
       'B1-': { min: number; max: number };
     };
-    difficulty_score: number;  // 题目难度分（0-3）
+    difficulty_score: number;
   };
 }
 
-// 题库定义 - 10道题目覆盖不同场景和难度
-const QUESTIONS: Question[] = [
-  // A1级别 - 日常场景
-  {
-    id: 'q001',
-    content: {
-      text: "Listen: 'Good morning! How are you today?' What should you say?",
-      options: ["I'm fine, thank you.", "My name is John.", "I want to go home.", "I don't know."],
-      answer: 0
-    },
-    translations: {
-      zh: {
-        text: "听：'Good morning! How are you today?' 你应该说什么？",
-        options: ["我很好，谢谢。", "我叫约翰。", "我想回家。", "我不知道。"]
-      },
-      ar: {
-        text: "استمع: 'Good morning! How are you today?' ماذا يجب أن تقول؟",
-        options: ["أنا بخير، شكرًا.", "اسمي جون.", "أريد أن أذهب إلى المنزل.", "لا أعرف."]
-      }
-    },
-    cefr_map: { A1: 1, A2: 1, B1: 1, B2: 1 },
-    metadata: {
-      scene: 'daily',
-      domain: 'greetings',
-      skill: 'listening',
-      scored: true,  // 前3题计分
-      listening_speed_wpm: {
-        A2: { min: 110, max: 130 },
-        'B1-': { min: 120, max: 140 }
-      },
-      difficulty_score: 1  // A1级别难度
-    }
-  },
+// 防泄题渲染：转换为现有Question格式
+export function convertToLegacyQuestions(): Question[] {
+  const questions: Question[] = [];
 
-  // A1级别 - 数字理解
-  {
-    id: 'q002',
+  // 听力题
+  questions.push({
+    id: OBJECTIVES.listening_q1.id,
     content: {
-      text: "Read the sign: 'Exit 15' What number is this?",
-      options: ["5", "13", "15", "50"],
-      answer: 2
+      text: "听下面的内容并选择正确答案",
+      audio_url: "/api/audio/listening_q1", // TTS生成
+      options: [
+        OBJECTIVES.listening_q1.options.a.zh,
+        OBJECTIVES.listening_q1.options.b.zh,
+        OBJECTIVES.listening_q1.options.c.zh,
+        OBJECTIVES.listening_q1.options.d.zh
+      ],
+      answer: 1 // b选项
     },
     translations: {
       zh: {
-        text: "读标志：'Exit 15' 这是数字几？",
-        options: ["5", "13", "15", "50"]
+        text: "听下面的内容并选择正确答案",
+        options: [
+          OBJECTIVES.listening_q1.options.a.zh,
+          OBJECTIVES.listening_q1.options.b.zh,
+          OBJECTIVES.listening_q1.options.c.zh,
+          OBJECTIVES.listening_q1.options.d.zh
+        ]
       },
       ar: {
-        text: "اقترح اللافتة: 'Exit 15' ما هو هذا الرقم؟",
-        options: ["5", "13", "15", "50"]
+        text: "استمع إلى المحتوى التالي واختر الإجابة الصحيحة",
+        options: [
+          OBJECTIVES.listening_q1.options.a.ar,
+          OBJECTIVES.listening_q1.options.b.ar,
+          OBJECTIVES.listening_q1.options.c.ar,
+          OBJECTIVES.listening_q1.options.d.ar
+        ]
       }
     },
-    cefr_map: { A1: 1, A2: 1, B1: 1, B2: 1 },
+    cefr_map: { A1: 0, A2: 1, B1: 1, B2: 0 },
     metadata: {
-      scene: 'travel',
-      domain: 'navigation',
+      scene: 'work',
+      domain: 'communication',
+      skill: 'listening',
+      scored: true,
+      listening_speed_wpm: OBJECTIVES.listening_q1.listening_speed_wpm,
+      difficulty_score: 2
+    }
+  });
+
+  // 阅读题
+  questions.push({
+    id: OBJECTIVES.reading_q1.id,
+    content: {
+      text: `读以下内容：${OBJECTIVES.reading_q1.passage_en}\n\n问题：${OBJECTIVES.reading_q1.question_en}`,
+      options: [
+        OBJECTIVES.reading_q1.options.a.zh,
+        OBJECTIVES.reading_q1.options.b.zh,
+        OBJECTIVES.reading_q1.options.c.zh,
+        OBJECTIVES.reading_q1.options.d.zh
+      ],
+      answer: 1 // b选项
+    },
+    translations: {
+      zh: {
+        text: `读以下内容：${OBJECTIVES.reading_q1.passage_en}\n\n问题：${OBJECTIVES.reading_q1.question_en}`,
+        options: [
+          OBJECTIVES.reading_q1.options.a.zh,
+          OBJECTIVES.reading_q1.options.b.zh,
+          OBJECTIVES.reading_q1.options.c.zh,
+          OBJECTIVES.reading_q1.options.d.zh
+        ]
+      },
+      ar: {
+        text: `اقرأ المحتوى التالي: ${OBJECTIVES.reading_q1.passage_en}\n\nالسؤال: ${OBJECTIVES.reading_q1.question_en}`,
+        options: [
+          OBJECTIVES.reading_q1.options.a.ar,
+          OBJECTIVES.reading_q1.options.b.ar,
+          OBJECTIVES.reading_q1.options.c.ar,
+          OBJECTIVES.reading_q1.options.d.ar
+        ]
+      }
+    },
+    cefr_map: { A1: 0, A2: 1, B1: 1, B2: 0 },
+    metadata: {
+      scene: 'work',
+      domain: 'communication',
       skill: 'reading',
-      scored: true,  // 前3题计分
-      difficulty_score: 1  // A1级别难度
+      scored: true,
+      difficulty_score: 2
     }
-  },
+  });
 
-  // A2级别 - 旅行场景
-  {
-    id: 'q003',
-    content: {
-      text: "Listen: 'The train leaves at 8:30 PM.' When does the train leave?",
-      options: ["Morning", "Afternoon", "Evening", "Night"],
-      answer: 2
-    },
-    translations: {
-      zh: {
-        text: "听：'The train leaves at 8:30 PM.' 火车什么时候离开？",
-        options: ["早上", "下午", "晚上", "深夜"]
-      },
-      ar: {
-        text: "استمع: 'The train leaves at 8:30 PM.' متى يغادر القطار؟",
-        options: ["الصباح", "بعد الظهر", "المساء", "الليل"]
-      }
-    },
-    cefr_map: { A1: 0, A2: 1, B1: 1, B2: 1 },
-    metadata: {
-      scene: 'travel',
-      domain: 'transportation',
-      skill: 'listening',
-      scored: true,  // 前3题计分
-      listening_speed_wpm: {
-        A2: { min: 110, max: 130 },
-        'B1-': { min: 120, max: 140 }
-      },
-      difficulty_score: 2  // A2级别难度
-    }
-  },
+  return questions;
+}
 
-  // A2级别 - 职场场景
-  {
-    id: 'q004',
-    content: {
-      text: "Read: 'Please submit your report by Friday.' What is the deadline?",
-      options: ["Monday", "Wednesday", "Friday", "Sunday"],
-      answer: 2
-    },
-    translations: {
-      zh: {
-        text: "读：'Please submit your report by Friday.' 截止日期是什么时候？",
-        options: ["周一", "周三", "周五", "周日"]
-      },
-      ar: {
-        text: "اقترح: 'Please submit your report by Friday.' ما هو الموعد النهائي؟",
-        options: ["الإثنين", "الأربعاء", "الجمعة", "الأحد"]
-      }
-    },
-    cefr_map: { A1: 0, A2: 1, B1: 1, B2: 1 },
-    metadata: {
-      scene: 'work',
-      domain: 'office',
-      skill: 'reading'
-    }
-  },
+// 获取场景锚点的本地化文本
+export function getLocalizedSceneAnchor(anchorId: string, locale: 'zh' | 'en' | 'ar'): string | null {
+  const anchor = SCENE_ANCHORS.find(a => a.id === anchorId);
+  if (!anchor) return null;
 
-  // B1级别 - 学术场景
-  {
-    id: 'q005',
-    content: {
-      text: "Listen: 'The research indicates significant correlation between variables.' What is the main topic?",
-      options: ["Weather", "Research findings", "Shopping", "Cooking"],
-      answer: 1
-    },
-    translations: {
-      zh: {
-        text: "听：'The research indicates significant correlation between variables.' 主要话题是什么？",
-        options: ["天气", "研究发现", "购物", "烹饪"]
-      },
-      ar: {
-        text: "استمع: 'The research indicates significant correlation between variables.' ما هو الموضوع الرئيسي؟",
-        options: ["الطقس", "النتائج البحثية", "التسوق", "الطبخ"]
-      }
-    },
-    cefr_map: { A1: 0, A2: 0, B1: 1, B2: 1 },
-    metadata: {
-      scene: 'academic',
-      domain: 'research',
-      skill: 'listening'
-    }
-  },
+  return anchor[locale];
+}
 
-  // B1级别 - 职场场景
-  {
-    id: 'q006',
-    content: {
-      text: "Read: 'We need to optimize our workflow to increase productivity.' What should be improved?",
-      options: ["Break time", "Work process", "Office decor", "Lunch menu"],
-      answer: 1
-    },
-    translations: {
-      zh: {
-        text: "读：'We need to optimize our workflow to increase productivity.' 需要改进什么？",
-        options: ["休息时间", "工作流程", "办公室装饰", "午餐菜单"]
-      },
-      ar: {
-        text: "اقترح: 'We need to optimize our workflow to increase productivity.' ما الذي يجب تحسينه؟",
-        options: ["وقت الراحة", "سير العمل", "ديكور المكتب", "قائمة الغداء"]
-      }
-    },
-    cefr_map: { A1: 0, A2: 0, B1: 1, B2: 1 },
-    metadata: {
-      scene: 'work',
-      domain: 'management',
-      skill: 'reading'
-    }
-  },
+// 获取所有场景锚点
+export function getAllSceneAnchors(): SceneAnchor[] {
+  return SCENE_ANCHORS;
+}
 
-  // B2级别 - 旅行场景
-  {
-    id: 'q007',
-    content: {
-      text: "Listen: 'The itinerary has been modified due to unforeseen circumstances.' What happened to the plan?",
-      options: ["It was cancelled", "It was changed", "It was successful", "It was delayed"],
-      answer: 1
-    },
-    translations: {
-      zh: {
-        text: "听：'The itinerary has been modified due to unforeseen circumstances.' 计划发生了什么？",
-        options: ["被取消了", "被修改了", "很成功", "被延迟了"]
-      },
-      ar: {
-        text: "استمع: 'The itinerary has been modified due to unforeseen circumstances.' ماذا حدث للخطة؟",
-        options: ["تم إلغاؤها", "تم تعديلها", "كانت ناجحة", "تم تأخيرها"]
-      }
-    },
-    cefr_map: { A1: 0, A2: 0, B1: 0, B2: 1 },
-    metadata: {
-      scene: 'travel',
-      domain: 'planning',
-      skill: 'listening'
-    }
-  },
+// 根据轨道筛选场景锚点
+export function filterAnchorsByTrack(anchors: SceneAnchor[], track: Track): SceneAnchor[] {
+  return anchors.filter(anchor => anchor.tracks.includes(track));
+}
 
-  // B2级别 - 学术场景
-  {
-    id: 'q008',
-    content: {
-      text: "Read: 'The hypothesis was validated through comprehensive empirical analysis.' What does 'empirical' mean?",
-      options: ["Theoretical", "Based on observation", "Ancient", "Simple"],
-      answer: 1
-    },
-    translations: {
-      zh: {
-        text: "读：'The hypothesis was validated through comprehensive empirical analysis.' 'empirical'是什么意思？",
-        options: ["理论的", "基于观察的", "古代的", "简单的"]
-      },
-      ar: {
-        text: "اقترح: 'The hypothesis was validated through comprehensive empirical analysis.' ماذا تعني كلمة 'empirical'؟",
-        options: ["نظري", "مبني على الملاحظة", "قديم", "بسيط"]
-      }
-    },
-    cefr_map: { A1: 0, A2: 0, B1: 0, B2: 1 },
-    metadata: {
-      scene: 'academic',
-      domain: 'terminology',
-      skill: 'reading'
-    }
-  },
+// 根据技能筛选场景锚点
+export function filterAnchorsBySkill(anchors: SceneAnchor[], skill: Skill): SceneAnchor[] {
+  return anchors.filter(anchor => anchor.skill === skill);
+}
 
-  // B2级别 - 职场场景
-  {
-    id: 'q009',
-    content: {
-      text: "Listen: 'We need to leverage our competitive advantages to penetrate new markets.' What is the business goal?",
-      options: ["Reduce costs", "Enter new markets", "Hire more staff", "Upgrade technology"],
-      answer: 1
-    },
-    translations: {
-      zh: {
-        text: "听：'We need to leverage our competitive advantages to penetrate new markets.' 商业目标是什么？",
-        options: ["降低成本", "进入新市场", "招聘更多员工", "升级技术"]
-      },
-      ar: {
-        text: "استمع: 'We need to leverage our competitive advantages to penetrate new markets.' ما هو الهدف التجاري؟",
-        options: ["تقليل التكاليف", "دخول أسواق جديدة", "توظيف المزيد من الموظفين", "ترقية التكنولوجيا"]
-      }
-    },
-    cefr_map: { A1: 0, A2: 0, B1: 0, B2: 1 },
-    metadata: {
-      scene: 'work',
-      domain: 'strategy',
-      skill: 'listening'
-    }
-  },
+// 获取计分题目（仅2题）
+export function getScoredQuestions(): Question[] {
+  return convertToLegacyQuestions().filter(q => q.metadata.scored);
+}
 
-  // B1级别 - 日常生活复杂场景
-  {
-    id: 'q010',
-    content: {
-      text: "Read: 'Despite the traffic jam, I managed to arrive just in time for the appointment.' What was the situation?",
-      options: ["Easy journey", "Heavy traffic but on time", "Missed appointment", "No traffic"],
-      answer: 1
-    },
-    translations: {
-      zh: {
-        text: "读：'Despite the traffic jam, I managed to arrive just in time for the appointment.' 情况如何？",
-        options: ["旅途顺利", "交通拥堵但准时到达", "错过了预约", "没有交通"]
-      },
-      ar: {
-        text: "اقترح: 'Despite the traffic jam, I managed to arrive just in time for the appointment.' ما كانت الحالة؟",
-        options: ["رحلة سهلة", "ازدحام مروري ولكن في الوقت المحدد", "فوت الموعد", "لا يوجد ازدحام"]
-      }
-    },
-    cefr_map: { A1: 0, A2: 0, B1: 1, B2: 1 },
-    metadata: {
-      scene: 'daily',
-      domain: 'problem_solving',
-      skill: 'reading'
-    }
+// 随机化选项顺序（防泄题）
+export function randomizeOptions(options: string[]): string[] {
+  const shuffled = [...options];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-];
+  return shuffled;
+}
 
-/**
- * 获取本地化题库
- */
-export function getLocalizedQuestionBank(locale: QuestionLocale): Question[] {
-  return QUESTIONS.map(question => {
-    if (locale === 'en') {
-      return {
-        ...question,
-        // 英文直接使用原始内容
-        text: question.content.text,
-        options: question.content.options,
-        answer: question.content.answer
-      };
-    } else {
-      return {
-        ...question,
-        // 使用对应语言的翻译
-        text: question.translations[locale].text,
-        options: question.translations[locale].options,
-        answer: question.content.answer // 答案索引不变
-      };
-    }
+// 获取随机化的题目（前端渲染用）
+export function getQuestionsForFrontend(locale: 'zh' | 'en' | 'ar'): Array<{
+  id: string;
+  text: string;
+  audio_url?: string;
+  options: string[];
+  type: 'listening' | 'reading';
+}> {
+  const questions = convertToLegacyQuestions();
+
+  return questions.map(q => {
+    const localizedText = locale === 'zh' ? q.translations.zh.text : q.translations.ar.text;
+    const localizedOptions = locale === 'zh' ? q.translations.zh.options : q.translations.ar.options;
+
+    return {
+      id: q.id,
+      text: localizedText,
+      audio_url: q.content.audio_url,
+      options: randomizeOptions(localizedOptions), // 随机化选项顺序
+      type: q.metadata.skill === 'listening' ? 'listening' : 'reading' as const
+    };
   });
 }
 
-/**
- * 获取题库统计信息
- */
-export function getQuestionBankStats() {
+// 验证答案（服务端使用）
+export function validateAnswer(questionId: string, userAnswer: string): boolean {
+  const question = convertToLegacyQuestions().find(q => q.id === questionId);
+  if (!question) return false;
+
+  const correctOption = question.content.options[question.content.answer];
+  return correctOption === userAnswer;
+}
+
+// 获取本地化题库（兼容现有系统）
+export function getLocalizedQuestionBank(locale: 'zh' | 'en' | 'ar'): QuestionLocale[] {
+  const questions = convertToLegacyQuestions();
+
+  return questions.map(q => {
+    const localizedText = locale === 'zh' ? q.content.text :
+                         locale === 'en' ? q.content.text :
+                         q.translations.ar.text;
+
+    const localizedOptions = locale === 'zh' ? q.translations.zh.options :
+                             locale === 'en' ? q.content.options :
+                             q.translations.ar.options;
+
+    // 确保选项数组存在
+    if (!localizedOptions || !Array.isArray(localizedOptions)) {
+      throw new Error(`Localized options not found for question ${q.id} in locale ${locale}`);
+    }
+
+    return {
+      id: q.id,
+      text: localizedText,
+      audio_url: q.content.audio_url,
+      options: randomizeOptions(localizedOptions), // 随机化选项顺序
+      type: q.metadata.skill === 'listening' ? 'listening' : 'reading' as const
+    };
+  });
+}
+
+// 本地化题目接口
+export interface QuestionLocale {
+  id: string;
+  text: string;
+  audio_url?: string;
+  options: string[];
+  type: 'listening' | 'reading';
+}
+
+// ============================================================================
+// 运行时契约校验 - 启动时验证数据完整性
+// ============================================================================
+console.log('🔍 开始校验QuickPlacement题库契约...');
+
+try {
+  // 校验客观题
+  const validatedObjectives = validateObjectives(OBJECTIVES);
+  console.log(`✅ 客观题校验通过: ${validatedObjectives.length} 题`);
+
+  // 校验场景锚点
+  const validatedAnchors = validateSceneAnchors(SCENE_ANCHORS);
+  console.log(`✅ 场景锚点校验通过: ${validatedAnchors.length} 个锚点`);
+
+  // 详细统计
   const stats = {
-    total_questions: QUESTIONS.length,
-    by_scene: {
-      daily: 0,
-      work: 0,
-      travel: 0,
-      academic: 0
+    objectives: {
+      total: validatedObjectives.length,
+      scored: validatedObjectives.filter(o => o.scored).length,
+      listening: validatedObjectives.filter(o => o.transcript_en).length,
+      reading: validatedObjectives.filter(o => o.passage_en).length
     },
-    by_skill: {
-      listening: 0,
-      reading: 0,
-      vocabulary: 0
-    },
-    by_difficulty: {
-      A1: 0,
-      A2: 0,
-      B1: 0,
-      B2: 0
+    anchors: {
+      total: validatedAnchors.length,
+      A1: validatedAnchors.filter(a => a.band_hint === 'A1').length,
+      A2: validatedAnchors.filter(a => a.band_hint === 'A2').length,
+      'B1-': validatedAnchors.filter(a => a.band_hint === 'B1-').length
     }
   };
 
-  QUESTIONS.forEach(question => {
-    // 统计场景
-    stats.by_scene[question.metadata.scene]++;
+  console.log('📊 题库统计:', stats);
+  console.log('🎉 QuickPlacement题库契约校验完成');
 
-    // 统计技能
-    stats.by_skill[question.metadata.skill]++;
+} catch (error) {
+  console.error('❌ QuickPlacement题库契约校验失败:');
+  console.error(error);
 
-    // 统计难度（基于CEFR映射）
-    Object.entries(question.cefr_map).forEach(([level, count]) => {
-      if (count > 0) {
-        stats.by_difficulty[level as keyof typeof stats.by_difficulty]++;
-      }
-    });
-  });
-
-  return stats;
-}
-
-/**
- * 根据场景筛选题目
- */
-export function filterQuestionsByScene(questions: Question[], scene: Question['metadata']['scene']): Question[] {
-  return questions.filter(q => q.metadata.scene === scene);
-}
-
-/**
- * 根据技能筛选题目
- */
-export function filterQuestionsBySkill(questions: Question[], skill: Question['metadata']['skill']): Question[] {
-  return questions.filter(q => q.metadata.skill === skill);
-}
-
-/**
- * 获取计分题目（v1.1功能）
- */
-export function getScoredQuestions(questions: Question[], maxCount: number = 3): Question[] {
-  return questions.filter(q => q.metadata.scored).slice(0, maxCount);
-}
-
-/**
- * 获取练习题目（不计分）
- */
-export function getPracticeQuestions(questions: Question[]): Question[] {
-  return questions.filter(q => !q.metadata.scored);
+  // 在开发环境中抛出错误，在生产环境中记录警告
+  if (process.env.NODE_ENV === 'development') {
+    throw error;
+  } else {
+    console.warn('⚠️ 题库契约校验失败，但继续运行生产环境');
+  }
 }

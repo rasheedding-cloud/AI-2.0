@@ -1,0 +1,61 @@
+#\!/usr/bin/env bash
+# QuickPlacement 预提交校验钩子
+
+echo "🔍 运行 QuickPlacement 预提交校验..."
+
+# 检查是否有题库相关的文件变更
+qb_files_changed=$(git diff --cached --name-only | grep -E "(qb_bank|qb_schema)" | wc -l)
+
+if [ "$qb_files_changed" -gt 0 ]; then
+  echo "📋 检测到题库文件变更，运行完整校验..."
+
+  # 1. 类型检查
+  echo "  1️⃣ 运行类型检查..."
+  npm run type-check
+  if [ $? -ne 0 ]; then
+    echo "❌ TypeScript 类型检查失败"
+    exit 1
+  fi
+
+  # 2. 合同测试
+  echo "  2️⃣ 运行合同测试..."
+  npm test -- --testNamePattern="qb_contract" --passWithNoTests
+  if [ $? -ne 0 ]; then
+    echo "❌ 合同测试失败"
+    exit 1
+  fi
+
+  # 3. 题库校验
+  echo "  3️⃣ 运行题库校验..."
+  npx tsx scripts/validate-qb.ts
+  if [ $? -ne 0 ]; then
+    echo "❌ 题库校验失败"
+    exit 1
+  fi
+
+  echo "✅ 所有题库相关校验通过"
+else
+  echo "ℹ️  未检测到题库文件变更，跳过专项校验"
+fi
+
+# 4. 基础校验（始终运行）
+echo "  4️⃣ 运行基础校验..."
+
+# 检查是否有语法错误
+npm run build --silent
+if [ $? -ne 0 ]; then
+  echo "❌ 构建检查失败"
+  exit 1
+fi
+
+# 检查是否有 linting 错误
+if [ -f "eslint.config.mjs" ]; then
+  npm run lint --silent
+  if [ $? -ne 0 ]; then
+    echo "❌ ESLint 检查失败"
+    exit 1
+  fi
+fi
+
+echo "🎉 预提交校验通过！"
+exit 0

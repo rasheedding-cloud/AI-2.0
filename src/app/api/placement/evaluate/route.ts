@@ -4,7 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { performQuickPlacement, shadowModeEvaluation, QuickPlacementConfig, quickPlacementV1_1 } from '@/server/services/placement/quick_placement';
+import { performQuickPlacement, shadowModeEvaluation, QuickPlacementConfig } from '@/server/services/placement/quick_placement';
+import { quickPlacementV1_1, shadowModeComparison } from '@/server/services/placement/quick_placement_v1_1';
 import { QuickPlacementRequestSchema, QuickPlacementResponseSchema, ShadowModeResponseSchema, ApiResponseSchema } from '@/types/placement';
 
 export async function POST(request: NextRequest) {
@@ -42,25 +43,25 @@ export async function POST(request: NextRequest) {
         v1_1_enabled: false
       });
 
-      const v1_1Result = await quickPlacementV1_1(validatedRequest);
-
-      const shadowComparison = {
-        v1_result: v1Result,
-        v1_1_result: v1_1Result,
-        comparison: {
-          level_match: v1Result.mapped_start === v1_1Result.mapped_start,
-          confidence_diff: Math.abs(v1Result.confidence - v1_1Result.confidence),
-          band_diff: v1_1Result.mapped_start_band ?
-            `v1: ${v1Result.mapped_start} vs v1.1: ${v1_1Result.mapped_start_band}` :
-            null
-        }
+      // 转换v1请求格式到v1.1格式
+      const v1_1Request = {
+        locale: validatedRequest.locale,
+        user_answers: validatedRequest.user_answers || [],
+        scene_tags: validatedRequest.scene_tags || [],
+        objective_score: validatedRequest.objective_score,
+        self_assessed_level: validatedRequest.self_assessed_level,
+        track_hint: validatedRequest.track_hint
       };
+
+      const v1_1Result = quickPlacementV1_1(v1_1Request);
+
+      const shadowComparisonData = shadowModeComparison(v1_1Request, v1Result, v1_1Result);
 
       return NextResponse.json({
         success: true,
         data: {
           shadow_mode_enabled: true,
-          shadow_comparison: shadowComparison,
+          shadow_comparison: shadowComparisonData,
           // 返回v1结果用于UI显示
           ...v1Result,
           // 同时包含v1.1的额外字段用于分析
@@ -83,7 +84,16 @@ export async function POST(request: NextRequest) {
 
       if (v1_1Enabled) {
         // v1.1模式：使用新的三信号融合算法
-        result = await quickPlacementV1_1(validatedRequest);
+        const v1_1Request = {
+          locale: validatedRequest.locale,
+          user_answers: validatedRequest.user_answers || [],
+          scene_tags: validatedRequest.scene_tags || [],
+          objective_score: validatedRequest.objective_score,
+          self_assessed_level: validatedRequest.self_assessed_level,
+          track_hint: validatedRequest.track_hint
+        };
+
+        result = quickPlacementV1_1(v1_1Request);
       } else {
         // v1模式：使用原有算法
         const config: Partial<QuickPlacementConfig> = {

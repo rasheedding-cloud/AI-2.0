@@ -33,18 +33,19 @@ const translations = {
     selfAssessmentText: '自评',
     diagnostic: '能力诊断',
     metadata: '测试信息',
-    // v1.1 新增
+    // v1.1 友好标签
     suggestedStart: '起点建议',
-    basicLevel: '基础',
-    intermediateStart: '进阶-起步',
-    intermediate: '进阶',
-    advancedStart: '高级-起步',
-    advanced: '高级',
-    disclaimer: '这只是起点估计，你仍会拿到个性化计划',
+    'A2-': '基础-起步',
+    'A2': '基础',
+    'A2+': '基础+',
+    'B1-': '进阶-起步',
+    'B1': '进阶',
+    disclaimer: '这只是起点估计，您仍会获得个性化学习方案',
+    // v1.1 温和提示
     flags: {
-      insufficient_data: '建议多选经历过的场景；不确定可选"未遇到"。',
-      conflict_obj_scene: '建议完成3分钟听读小测以提高准确度。',
-      self_gap_gt1band: '你的自我感受与小测差距较大，建议从建议起点开始并在首周复核。'
+      insufficient_data: '建议多选您熟悉的场景，再完成2题小测，结果会更准。',
+      conflict_obj_scene: '您的自述较强，但小测较弱，建议从较稳妥的起点开始，首周再复核。',
+      self_gap_gt1band: '您的自我感受与小测差距较大，先从建议起点开始，我们会动态调整。'
     }
   },
   en: {
@@ -68,18 +69,19 @@ const translations = {
     selfAssessmentText: 'Self-Assessment',
     diagnostic: 'Skill Diagnostic',
     metadata: 'Test Information',
-    // v1.1 新增
+    // v1.1 友好标签
     suggestedStart: 'Starting Point Recommendation',
-    basicLevel: 'Basic',
-    intermediateStart: 'Intermediate-Start',
-    intermediate: 'Intermediate',
-    advancedStart: 'Advanced-Start',
-    advanced: 'Advanced',
+    'A2-': 'Basic-Start',
+    'A2': 'Basic',
+    'A2+': 'Basic+',
+    'B1-': 'Intermediate-Start',
+    'B1': 'Intermediate',
     disclaimer: 'This is just a starting point estimate, you will still receive a personalized plan',
+    // v1.1 温和提示
     flags: {
-      insufficient_data: 'Please select more scenes you have experienced; you can choose "Not Encountered" if unsure.',
-      conflict_obj_scene: 'Complete the 3-minute listening and reading test for better accuracy.',
-      self_gap_gt1band: 'Your self-assessment differs significantly from the test results. Start from the recommended point and re-evaluate in the first week.'
+      insufficient_data: 'Please select more scenes you are familiar with, and complete the 2-question test for better accuracy.',
+      conflict_obj_scene: 'Your self-description is strong but test results are weaker. We recommend starting from a more conservative point and reviewing in the first week.',
+      self_gap_gt1band: 'Your self-perception differs significantly from test results. Start from the recommended point and we will adjust dynamically.'
     }
   },
   ar: {
@@ -103,18 +105,19 @@ const translations = {
     selfAssessmentText: 'ذاتي',
     diagnostic: 'تشخيص المهارات',
     metadata: 'معلومات الاختبار',
-    // v1.1 新增
+    // v1.1 友好标签
     suggestedStart: 'توصية نقطة البداية',
-    basicLevel: 'أساسي',
-    intermediateStart: 'متوسط-بداية',
-    intermediate: 'متوسط',
-    advancedStart: 'متقدم-بداية',
-    advanced: 'متقدم',
+    'A2-': 'أساسي-بداية',
+    'A2': 'أساسي',
+    'A2+': 'أساسي+',
+    'B1-': 'متوسط-بداية',
+    'B1': 'متوسط',
     disclaimer: 'هذا مجرد تقدير لنقطة البداية، ستحصل على خطة شخصية',
+    // v1.1 温和提示
     flags: {
-      insufficient_data: 'يرجى اختيار المزيد من المشاهد التي مررت بها؛ يمكنك اختيار "لم أواجه" إذا لم تكن متأكداً.',
-      conflict_obj_scene: 'أكمل اختبار الاستماع والقراءة لمدة 3 دقائق للحصول على دقة أفضل.',
-      self_gap_gt1band: 'تقييمك الذاتي يختلف بشكل كبير عن نتائج الاختبار. ابدأ من النقطة المقترحة وأعد التقييم في الأسبوع الأول.'
+      insufficient_data: 'يرجى اختيار المزيد من المشاهد التي تعرفها، وإكمال اختبار السؤالين للحصول على نتائج أكثر دقة.',
+      conflict_obj_scene: 'وصفك الذاتي قوي ولكن نتائج الاختبار ضعيفة. نوصي بالبدء من نقطة أكثر تحفظًا ومراجعتها في الأسبوع الأول.',
+      self_gap_gt1band: 'إدراكك الذاتي يختلف بشكل كبير عن نتائج الاختبار. ابدأ من النقطة المقترحة وسنقوم بالتعديل ديناميكيًا.'
     }
   }
 };
@@ -392,6 +395,63 @@ export function QuickPlacementResults({
           </div>
         </div>
       </div>
+
+      {/* v1.1 友好标签和提示 */}
+      {hasV1_1Data && (
+        <>
+          {/* 友好的微档标签 */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {t.suggestedStart}
+            </h3>
+            <div className="text-center">
+              <div className={`inline-flex items-center justify-center w-20 h-20 ${MICRO_BAND_COLORS[result.mapped_start_band!]} rounded-full mb-3`}>
+                <span className="text-xl font-bold text-white">
+                  {t[result.mapped_start_band! as keyof typeof t]}
+                </span>
+              </div>
+              <p className="text-gray-600 mb-2">{t.disclaimer}</p>
+            </div>
+          </div>
+
+          {/* Flags 提示 */}
+          {result.flags && result.flags.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm p-6 mb-6">
+              <h3 className="text-lg font-semibold text-yellow-900 mb-4">
+                温和提示
+              </h3>
+              <div className="space-y-2">
+                {result.flags.map((flag, index) => (
+                  <div key={index} className="flex items-start">
+                    <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-yellow-800 text-sm">
+                      {t.flags[flag as keyof typeof t.flags]}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 证据短语 */}
+          {result.evidence_phrases && result.evidence_phrases.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg shadow-sm p-6 mb-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-4">
+                基于以下场景评估
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {result.evidence_phrases.map((phrase, index) => (
+                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    {phrase}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* 操作按钮 */}
       <div className=\"flex flex-col sm:flex-row gap-4 justify-center\">

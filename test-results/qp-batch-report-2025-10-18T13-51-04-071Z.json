@@ -1,0 +1,481 @@
+{
+  "test_summary": {
+    "total_samples": 10,
+    "successful_calls": 0,
+    "failed_calls": 10,
+    "average_processing_time_ms": 136,
+    "test_date": "2025-10-18T13:51:04.071Z",
+    "environment": "development",
+    "api_endpoint": "http://localhost:3004/api/placement/evaluate"
+  },
+  "results": [
+    {
+      "id": "sample_001",
+      "description": "基础场景锚点，无客观题，自评A2",
+      "request": {
+        "id": "sample_001",
+        "description": "基础场景锚点，无客观题，自评A2",
+        "locale": "zh",
+        "user_answers": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [
+          "a1_basic_greeting_info",
+          "a1_confirm_single_step",
+          "a1_3_4_sentence_msg",
+          "a1_spelling_names_time"
+        ],
+        "objective_score": 0,
+        "self_assessed_level": "A2",
+        "track_hint": "daily"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.255Z\",\"processing_time_ms\":60}}",
+      "processing_time_ms": 74,
+      "timestamp": "2025-10-18T13:51:03.256Z"
+    },
+    {
+      "id": "sample_002",
+      "description": "中等场景锚点，客观题1分，自评B1",
+      "request": {
+        "id": "sample_002",
+        "description": "中等场景锚点，客观题1分，自评B1",
+        "locale": "zh",
+        "user_answers": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [
+          "a2_polite_rephrase",
+          "a2_handle_counter_issue",
+          "a2_read_service_notice",
+          "a2_write_4_5_confirm",
+          "a2_short_plan_45s"
+        ],
+        "objective_score": 1,
+        "self_assessed_level": "B1",
+        "track_hint": "work"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.333Z\",\"processing_time_ms\":71}}",
+      "processing_time_ms": 196,
+      "timestamp": "2025-10-18T13:51:03.378Z"
+    },
+    {
+      "id": "sample_003",
+      "description": "强场景锚点，客观题0分，自评B2",
+      "request": {
+        "id": "sample_003",
+        "description": "强场景锚点，客观题0分，自评B2",
+        "locale": "zh",
+        "user_answers": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [
+          "b1m_standup_60_90s",
+          "b1m_email_6_8_confirm",
+          "b1m_compare_options_reason",
+          "b1m_handle_complaint_simple",
+          "b1m_read_short_report"
+        ],
+        "objective_score": 0,
+        "self_assessed_level": "B2",
+        "track_hint": "work"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.376Z\",\"processing_time_ms\":114}}",
+      "processing_time_ms": 195,
+      "timestamp": "2025-10-18T13:51:03.377Z"
+    },
+    {
+      "id": "sample_004",
+      "description": "弱场景锚点，客观题2分，无自评",
+      "request": {
+        "id": "sample_004",
+        "description": "弱场景锚点，客观题2分，无自评",
+        "locale": "zh",
+        "user_answers": [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [
+          "a1_basic_greeting_info",
+          "a2_handle_counter_issue"
+        ],
+        "objective_score": 2,
+        "track_hint": "daily"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.584Z\",\"processing_time_ms\":86}}",
+      "processing_time_ms": 148,
+      "timestamp": "2025-10-18T13:51:03.630Z"
+    },
+    {
+      "id": "sample_005",
+      "description": "A1楼梯测试（少于3个A1锚点）",
+      "request": {
+        "id": "sample_005",
+        "description": "A1楼梯测试（少于3个A1锚点）",
+        "locale": "zh",
+        "user_answers": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [
+          "a1_basic_greeting_info"
+        ],
+        "objective_score": 0,
+        "self_assessed_level": "A1",
+        "track_hint": "daily"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.539Z\",\"processing_time_ms\":42}}",
+      "processing_time_ms": 147,
+      "timestamp": "2025-10-18T13:51:03.630Z"
+    },
+    {
+      "id": "sample_006",
+      "description": "B1楼梯测试（满足所有条件）",
+      "request": {
+        "id": "sample_006",
+        "description": "B1楼梯测试（满足所有条件）",
+        "locale": "zh",
+        "user_answers": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "scene_tags": [
+          "a1_basic_greeting_info",
+          "a1_confirm_single_step",
+          "a1_3_4_sentence_msg",
+          "a2_polite_rephrase",
+          "a2_read_service_notice",
+          "a2_write_4_5_confirm",
+          "a2_short_plan_45s",
+          "b1m_standup_60_90s",
+          "b1m_email_6_8_confirm"
+        ],
+        "objective_score": 1,
+        "self_assessed_level": "A2",
+        "track_hint": "work"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.629Z\",\"processing_time_ms\":131}}",
+      "processing_time_ms": 147,
+      "timestamp": "2025-10-18T13:51:03.630Z"
+    },
+    {
+      "id": "sample_007",
+      "description": "英文场景测试",
+      "request": {
+        "id": "sample_007",
+        "description": "英文场景测试",
+        "locale": "en",
+        "user_answers": [
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [
+          "a2_polite_rephrase",
+          "b1m_email_6_8_confirm",
+          "b1m_standup_60_90s"
+        ],
+        "objective_score": 2,
+        "self_assessed_level": "B1",
+        "track_hint": "work"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.854Z\",\"processing_time_ms\":52}}",
+      "processing_time_ms": 166,
+      "timestamp": "2025-10-18T13:51:03.899Z"
+    },
+    {
+      "id": "sample_008",
+      "description": "阿拉伯语场景测试",
+      "request": {
+        "id": "sample_008",
+        "description": "阿拉伯语场景测试",
+        "locale": "ar",
+        "user_answers": [
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [
+          "a2_polite_rephrase",
+          "a2_handle_counter_issue",
+          "a2_read_service_notice"
+        ],
+        "objective_score": 2,
+        "self_assessed_level": "A2",
+        "track_hint": "daily"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.795Z\",\"processing_time_ms\":45}}",
+      "processing_time_ms": 62,
+      "timestamp": "2025-10-18T13:51:03.796Z"
+    },
+    {
+      "id": "sample_009",
+      "description": "无场景锚点，仅自评",
+      "request": {
+        "id": "sample_009",
+        "description": "无场景锚点，仅自评",
+        "locale": "zh",
+        "user_answers": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [],
+        "objective_score": 0,
+        "self_assessed_level": "A2",
+        "track_hint": "daily"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.898Z\",\"processing_time_ms\":94}}",
+      "processing_time_ms": 166,
+      "timestamp": "2025-10-18T13:51:03.900Z"
+    },
+    {
+      "id": "sample_010",
+      "description": "复杂混合场景",
+      "request": {
+        "id": "sample_010",
+        "description": "复杂混合场景",
+        "locale": "zh",
+        "user_answers": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "scene_tags": [
+          "a1_basic_greeting_info",
+          "a1_confirm_single_step",
+          "a2_polite_rephrase",
+          "a2_handle_counter_issue",
+          "b1m_standup_60_90s",
+          "b1m_email_6_8_confirm"
+        ],
+        "objective_score": 2,
+        "self_assessed_level": "B1",
+        "track_hint": "work"
+      },
+      "response": null,
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:04.069Z\",\"processing_time_ms\":45}}",
+      "processing_time_ms": 57,
+      "timestamp": "2025-10-18T13:51:04.070Z"
+    }
+  ],
+  "error_samples": [
+    {
+      "id": "sample_001",
+      "description": "基础场景锚点，无客观题，自评A2",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.255Z\",\"processing_time_ms\":60}}",
+      "processing_time": 74,
+      "request_summary": {
+        "locale": "zh",
+        "answer_count": 10,
+        "scene_count": 4,
+        "has_self_assessment": true,
+        "track_hint": "daily"
+      }
+    },
+    {
+      "id": "sample_002",
+      "description": "中等场景锚点，客观题1分，自评B1",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.333Z\",\"processing_time_ms\":71}}",
+      "processing_time": 196,
+      "request_summary": {
+        "locale": "zh",
+        "answer_count": 10,
+        "scene_count": 5,
+        "has_self_assessment": true,
+        "track_hint": "work"
+      }
+    },
+    {
+      "id": "sample_003",
+      "description": "强场景锚点，客观题0分，自评B2",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.376Z\",\"processing_time_ms\":114}}",
+      "processing_time": 195,
+      "request_summary": {
+        "locale": "zh",
+        "answer_count": 10,
+        "scene_count": 5,
+        "has_self_assessment": true,
+        "track_hint": "work"
+      }
+    },
+    {
+      "id": "sample_004",
+      "description": "弱场景锚点，客观题2分，无自评",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.584Z\",\"processing_time_ms\":86}}",
+      "processing_time": 148,
+      "request_summary": {
+        "locale": "zh",
+        "answer_count": 10,
+        "scene_count": 2,
+        "has_self_assessment": false,
+        "track_hint": "daily"
+      }
+    },
+    {
+      "id": "sample_005",
+      "description": "A1楼梯测试（少于3个A1锚点）",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.539Z\",\"processing_time_ms\":42}}",
+      "processing_time": 147,
+      "request_summary": {
+        "locale": "zh",
+        "answer_count": 10,
+        "scene_count": 1,
+        "has_self_assessment": true,
+        "track_hint": "daily"
+      }
+    },
+    {
+      "id": "sample_006",
+      "description": "B1楼梯测试（满足所有条件）",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.629Z\",\"processing_time_ms\":131}}",
+      "processing_time": 147,
+      "request_summary": {
+        "locale": "zh",
+        "answer_count": 10,
+        "scene_count": 9,
+        "has_self_assessment": true,
+        "track_hint": "work"
+      }
+    },
+    {
+      "id": "sample_007",
+      "description": "英文场景测试",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.854Z\",\"processing_time_ms\":52}}",
+      "processing_time": 166,
+      "request_summary": {
+        "locale": "en",
+        "answer_count": 10,
+        "scene_count": 3,
+        "has_self_assessment": true,
+        "track_hint": "work"
+      }
+    },
+    {
+      "id": "sample_008",
+      "description": "阿拉伯语场景测试",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.795Z\",\"processing_time_ms\":45}}",
+      "processing_time": 62,
+      "request_summary": {
+        "locale": "ar",
+        "answer_count": 10,
+        "scene_count": 3,
+        "has_self_assessment": true,
+        "track_hint": "daily"
+      }
+    },
+    {
+      "id": "sample_009",
+      "description": "无场景锚点，仅自评",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:03.898Z\",\"processing_time_ms\":94}}",
+      "processing_time": 166,
+      "request_summary": {
+        "locale": "zh",
+        "answer_count": 10,
+        "scene_count": 0,
+        "has_self_assessment": true,
+        "track_hint": "daily"
+      }
+    },
+    {
+      "id": "sample_010",
+      "description": "复杂混合场景",
+      "error": "HTTP 500: {\"success\":false,\"error\":{\"code\":\"INTERNAL_ERROR\",\"message\":\"服务器内部错误\",\"details\":\"TypeError: (0 , _qb_bank__WEBPACK_IMPORTED_MODULE_0__.getLocalizedQuestionBank) is not a function\"},\"metadata\":{\"version\":\"v1\",\"timestamp\":\"2025-10-18T13:51:04.069Z\",\"processing_time_ms\":45}}",
+      "processing_time": 57,
+      "request_summary": {
+        "locale": "zh",
+        "answer_count": 10,
+        "scene_count": 6,
+        "has_self_assessment": true,
+        "track_hint": "work"
+      }
+    }
+  ]
+}

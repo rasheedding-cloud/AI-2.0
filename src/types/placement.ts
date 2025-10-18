@@ -181,7 +181,7 @@ export const PlacementSessionSchema = z.object({
   start_time: z.string(),
   current_question: z.number().default(0),
   answers: z.array(z.number().int().min(0).max(3)).max(10),
-  completed: z.boolean().default(false()),
+  completed: z.boolean().default(false),
   time_spent_seconds: z.number().default(0)
 });
 
