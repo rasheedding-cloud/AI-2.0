@@ -4,7 +4,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "rootDirectory": ".",
   "env": {
     "FEATURE_MILESTONES_V2": "true",
     "FEATURE_DYNAMIC_GATES": "true",
