@@ -3,6 +3,7 @@ import type { DifficultyBand } from '@/types';
 import { recommendLearningTrack } from '@/lib/trackRecommendation';
 import { inferStartBand, inferTargetBandFromIntake } from '@/lib/learning/caps';
 import { assessGoalCEFR, FEATURE_FLAGS } from '@/server/services/assessor';
+import { generatePhaseMilestones, convertPhasesToMilestoneText, type PhaseMilestonePlan } from '@/server/services/phaseMilestoneGenerator';
 
 // 基础计算常量
 export const LESSON_MINUTES = 25; // 25分钟一课
@@ -441,9 +442,57 @@ function generateIntensivePlan(
 }
 
 /**
+ * 生成基于阶段的里程碑文本
+ */
+async function generatePhaseBasedMilestones(
+  startBand: DifficultyBand,
+  targetBand: DifficultyBand,
+  weeks: number,
+  track: string,
+  tier: 'light' | 'standard' | 'intensive',
+  goalDescription: string
+): Promise<string[]> {
+  try {
+    console.log('生成阶段性里程碑:', {
+      startBand,
+      targetBand,
+      weeks,
+      track,
+      tier,
+      goalDescription
+    });
+
+    // 调用阶段性里程碑生成器
+    const phasePlan: PhaseMilestonePlan = await generatePhaseMilestones({
+      startLevel: startBand,
+      targetLevel: targetBand,
+      totalWeeks: weeks,
+      track: track,
+      goalDescription: goalDescription,
+      tier: tier
+    });
+
+    // 转换为显示文本
+    const milestoneTexts = convertPhasesToMilestoneText(phasePlan.phases);
+
+    console.log('阶段性里程碑生成成功:', {
+      phaseCount: phasePlan.total_phases,
+      milestoneCount: milestoneTexts.length,
+      milestones: milestoneTexts
+    });
+
+    return milestoneTexts;
+  } catch (error) {
+    console.error('生成阶段性里程碑失败，回退到月度里程碑:', error);
+    // 回退到原有的月度里程碑逻辑
+    return generateMonthlyMilestones(track, weeks, tier);
+  }
+}
+
+/**
  * 构建PlanOption对象
  */
-function buildPlanOption(
+async function buildPlanOption(
   tier: 'light' | 'standard' | 'intensive',
   planConfig: { dailyMinutes: number; daysPerWeek: number; weeks: number },
   totalMinutes: number,
@@ -451,7 +500,7 @@ function buildPlanOption(
   targetBand: DifficultyBand,
   intake: Intake,
   recommendedTrack: string
-): PlanOption {
+): Promise<PlanOption> {
   const { dailyMinutes, daysPerWeek, weeks } = planConfig;
   const lessons = totalLessonsRequired(totalMinutes);
   const finishDate = finishDateEst(weeks);
@@ -462,8 +511,16 @@ function buildPlanOption(
     study_days_per_week: daysPerWeek,
   }, weeks, totalMinutes);
 
-  // 生成月度里程碑
-  const monthlyMilestones = generateMonthlyMilestones(recommendedTrack, weeks, tier);
+  // 生成阶段性里程碑（新系统）
+  const goalDescription = intake.goal_free_text || '提升英语能力';
+  const monthlyMilestones = await generatePhaseBasedMilestones(
+    startBand,
+    targetBand,
+    weeks,
+    recommendedTrack,
+    tier,
+    goalDescription
+  );
 
   return {
     tier,
@@ -539,10 +596,12 @@ export async function generateThreeTiers(intake: Intake): Promise<{
   // 生成激进方案：标准强度的150%（最高4节课/天）
   const intensivePlan = generateIntensivePlan(standardPlan, totalMinutes);
 
-  // 构建最终的PlanOption对象
-  const light = buildPlanOption('light', lightPlan, totalMinutes, startBand, targetBand, intake, recommendedTrack);
-  const standard = buildPlanOption('standard', standardPlan, totalMinutes, startBand, targetBand, intake, recommendedTrack);
-  const intensive = buildPlanOption('intensive', intensivePlan, totalMinutes, startBand, targetBand, intake, recommendedTrack);
+  // 构建最终的PlanOption对象（异步调用）
+  const [light, standard, intensive] = await Promise.all([
+    buildPlanOption('light', lightPlan, totalMinutes, startBand, targetBand, intake, recommendedTrack),
+    buildPlanOption('standard', standardPlan, totalMinutes, startBand, targetBand, intake, recommendedTrack),
+    buildPlanOption('intensive', intensivePlan, totalMinutes, startBand, targetBand, intake, recommendedTrack)
+  ]);
 
   console.log('生成的三档方案:', {
     light: { daily: light.daily_minutes, days: light.days_per_week, weeks: light.weeks },

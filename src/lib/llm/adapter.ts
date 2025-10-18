@@ -1,5 +1,7 @@
 import type { LLMAdapter } from '@/types';
 
+export { type LLMAdapter } from '@/types';
+
 export class LLMError extends Error {
   constructor(
     message: string,
