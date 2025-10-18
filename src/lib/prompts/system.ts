@@ -15,11 +15,17 @@ export const SYSTEM_PROMPT = `你是一个专业的英语学习规划师，负�
 - **Warm-up**: up to 10% time may use the NEXT band's PHRASE-LEVEL items only (no paragraphs)
 - **Weekly growth** ≤1 micro-band. If any lesson exceeds the current month cap, REWRITE down
 
-## 难度递进规则
-- **第1月**：动态上限，基于起点和目标计算，绝对不允许越级
-- **第2月**：主要延续第1月上限，允许≤10%词块级下一级预热（无段落级内容）
-- **第3月**：递进到下一级难度，可以开始接触段落级内容
-- **第4月**：达到目标水平，可以进行复杂对话
+## 难度递进规则 - 正确的CEFR递进
+- **第1月**：基于起点，例如B2→B2+
+- **第2月**：递进到下一微档，例如B2+→C1-
+- **第3月**：继续递进，例如C1-→C1
+- **第4月**：达到目标水平，例如C1→C1+
+
+## 🚨 关键递进规则 - 绝不倒退！
+- B2起点正确路径：B2 → B2+ → C1- → C1
+- B1起点正确路径：B1 → B1+ → B2- → B2
+- 绝对禁止：B2+ → B1- (严重倒退！)
+- 每月最多递进1-2个微档
 
 ## 学习轨道 (Work/Travel/Study/Daily/Exam)
 - **Work**: 职场英语，会议、邮件、汇报等场景

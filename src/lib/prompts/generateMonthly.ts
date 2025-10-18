@@ -78,9 +78,10 @@ TASK: Produce a MonthlyPlan with DYNAMIC caps based on start_band × target_band
 - **周增长限制**：每周增长≤1微档，超限内容必须重写
 
 ### 重要修复
-- **B2起点学员**：第1月应该是B2或B2+，绝不能倒退到A2！
+- **B2起点学员**：第1月B2→B2+，第2月B2+→C1-，第3月C1-→C1，第4月C1→C1+
 - **目标母语水平**：最终目标是C1-C2，不是B1！
 - **180节课分配**：应该从B2开始递进到C1-C2水平
+- **🚨 绝不倒退**：B2+之后是C1-，不是B1-！
 
 ### 评估闸口动态规则
 - **If current month cap < B1-** use A2 gate {accuracy:0.8, task_steps:3, fluency_pauses:2}
