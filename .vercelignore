@@ -1,0 +1,43 @@
+# 忽略大文件和不必要的文档
+*.md
+!README.md
+!CLAUDE.md
+项目*
+开发*
+下次*
+GIT*
+NATURAL*
+UI*
+VERCEL*
+deploy*
+docs/
+__tests__/
+.claude/
+ai-learning-plan-backup/
+
+# 忽略构建缓存和日志
+.next/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 忽略开发工具配置
+.husky/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 忽略测试和文档
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+tests/
+coverage/
+
+# 忽略临时文件
+*.temp
+*.cache
+.parcel-cache/
