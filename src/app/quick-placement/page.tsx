@@ -1,172 +1,168 @@
 /**
- * QuickPlacement v1 测试页面
+ * QuickPlacement v1.1 API 测试页面
+ * 临时简化版本，用于验证 API 功能
  */
 
 'use client';
 
 import React, { useState } from 'react';
-import { QuickPlacement } from '@/components/QuickPlacement';
-import { QuickPlacementResponse } from '@/types/placement';
 
-export default function QuickPlacementPage() {
-  const [locale, setLocale] = useState<'zh' | 'en' | 'ar'>('zh');
-  const [trackHint, setTrackHint] = useState<'daily' | 'work' | 'travel' | 'academic' | undefined>('daily');
-  const [result, setResult] = useState<QuickPlacementResponse | null>(null);
-  const [showComponent, setShowComponent] = useState(true);
+export default function QuickPlacementTestPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleComplete = (placementResult: QuickPlacementResponse) => {
-    setResult(placementResult);
-    setShowComponent(false);
+  const testAPI = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 测试题目 API
+      const questionsResponse = await fetch('/api/placement/questions?locale=zh');
+      const questionsData = await questionsResponse.json();
+
+      // 测试评估 API
+      const evaluateResponse = await fetch('/api/placement/evaluate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          locale: 'zh',
+          user_answers: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          scene_tags: ['a1_basic_greeting_info', 'a1_confirm_single_step'],
+          objective_score: 0,
+          self_assessed_level: 'A2',
+          track_hint: 'daily'
+        }),
+      });
+
+      const evaluateData = await evaluateResponse.json();
+
+      setResult({
+        questions: questionsData,
+        evaluation: evaluateData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'API 测试失败');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSkip = () => {
-    console.log('用户跳过快测');
-    setShowComponent(false);
+  const testQuestionsAPI = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/placement/questions?locale=zh');
+      const data = await response.json();
+      setResult({ questions: data, timestamp: new Date().toISOString() });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '题目 API 测试失败');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRestart = () => {
-    setResult(null);
-    setShowComponent(true);
-  };
+  const isDataSafe = (data: any) => {
+    const dataStr = JSON.stringify(data);
+    const sensitiveFields = ['correct', 'scored', 'level_hint', 'answer'];
 
-  const isRTL = locale === 'ar';
+    for (const field of sensitiveFields) {
+      if (dataStr.includes(field)) {
+        return { safe: false, field };
+      }
+    }
+
+    return { safe: true };
+  };
 
   return (
-    <div className={`min-h-screen bg-gray-50 py-8 ${isRTL ? 'rtl' : 'ltr'}`}>
-      <div className=\"max-w-6xl mx-auto px-4\">
-        {/* 页面标题和配置 */}
-        <div className=\"text-center mb-8\">
-          <h1 className=\"text-4xl font-bold text-gray-900 mb-2\">
-            QuickPlacement v1 测试
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* 页面标题 */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            QuickPlacement v1.1 API 测试
           </h1>
-          <p className=\"text-xl text-gray-600 mb-6\">
-            3分钟英语水平快测系统
+          <p className="text-xl text-gray-600 mb-6">
+            测试防泄题和 API 功能
           </p>
-
-          {/* 配置选项 */}
-          {showComponent && (
-            <div className=\"bg-white rounded-lg shadow-md p-6 mb-8 max-w-2xl mx-auto\">
-              <h2 className=\"text-lg font-semibold text-gray-900 mb-4\">测试配置</h2>
-
-              <div className=\"grid md:grid-cols-2 gap-6\">
-                {/* 语言选择 */}
-                <div>
-                  <label className=\"block text-sm font-medium text-gray-700 mb-2\">
-                    界面语言
-                  </label>
-                  <select
-                    value={locale}
-                    onChange={(e) => setLocale(e.target.value as 'zh' | 'en' | 'ar')}
-                    className=\"w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500\"
-                  >
-                    <option value=\"zh\">中文</option>
-                    <option value=\"en\">English</option>
-                    <option value=\"ar\">العربية</option>
-                  </select>
-                </div>
-
-                {/* 学习轨道提示 */}
-                <div>
-                  <label className=\"block text-sm font-medium text-gray-700 mb-2\">
-                    学习轨道提示（可选）
-                  </label>
-                  <select
-                    value={trackHint || ''}
-                    onChange={(e) => setTrackHint(e.target.value ? e.target.value as any : undefined)}
-                    className=\"w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500\"
-                  >
-                    <option value=\"\">无提示</option>
-                    <option value=\"daily\">日常英语</option>
-                    <option value=\"work\">职场英语</option>
-                    <option value=\"travel\">旅行英语</option>
-                    <option value=\"academic\">学术英语</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* QuickPlacement 组件 */}
-        {showComponent ? (
-          <QuickPlacement
-            locale={locale}
-            trackHint={trackHint}
-            onComplete={handleComplete}
-            onSkip={handleSkip}
-          />
-        ) : (
-          <div className=\"text-center\">
-            {/* 结果显示 */}
-            {result && (
-              <div className=\"bg-white rounded-lg shadow-md p-8 mb-8 max-w-4xl mx-auto\">
-                <h2 className=\"text-2xl font-bold text-gray-900 mb-4\">测试结果</h2>
-                <div className=\"grid md:grid-cols-2 gap-6 text-left\">
-                  <div>
-                    <h3 className=\"font-semibold text-gray-700 mb-2\">基本信息</h3>
-                    <p><strong>评估等级:</strong> {result.mapped_start}</p>
-                    <p><strong>置信度:</strong> {Math.round(result.confidence * 100)}%</p>
-                    <p><strong>界面语言:</strong> {locale}</p>
-                    <p><strong>题目数量:</strong> {result.metadata.question_count}</p>
-                  </div>
-                  <div>
-                    <h3 className=\"font-semibold text-gray-700 mb-2\">客观题表现</h3>
-                    <p><strong>正确题数:</strong> {result.breakdown.objective_score.correct}/{result.breakdown.objective_score.total}</p>
-                    <p><strong>正确率:</strong> {Math.round(result.breakdown.objective_score.accuracy * 100)}%</p>
-                    <p><strong>自评等级:</strong> {result.breakdown.self_assessment || '未提供'}</p>
-                  </div>
-                </div>
+        {/* 测试按钮 */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 max-w-2xl mx-auto">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">API 测试</h2>
 
-                {/* 诊断信息 */}
-                <div className=\"mt-6 text-left\">
-                  <h3 className=\"font-semibold text-gray-700 mb-2\">能力诊断</h3>
-                  <div className=\"grid md:grid-cols-3 gap-4 text-sm\">
-                    <div>
-                      <strong>较强技能:</strong>
-                      <ul className=\"text-gray-600 mt-1\">
-                        {result.diagnostic.stronger_skills.map((skill, index) => (
-                          <li key={index}>• {skill}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <strong>较弱技能:</strong>
-                      <ul className=\"text-gray-600 mt-1\">
-                        {result.diagnostic.weaker_skills.map((skill, index) => (
-                          <li key={index}>• {skill}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <strong>建议重点:</strong>
-                      <ul className=\"text-gray-600 mt-1\">
-                        {result.diagnostic.recommended_focus.map((focus, index) => (
-                          <li key={index}>• {focus}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+          <div className="space-y-4">
+            <button
+              onClick={testQuestionsAPI}
+              disabled={isLoading}
+              className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+            >
+              {isLoading ? '测试中...' : '测试题目 API'}
+            </button>
 
-                {/* 详细数据 */}
-                <div className=\"mt-6 text-left bg-gray-50 p-4 rounded\">
-                  <h3 className=\"font-semibold text-gray-700 mb-2\">详细数据（JSON）</h3>
-                  <pre className=\"text-xs text-gray-600 overflow-auto max-h-64 bg-white p-3 rounded border\">
-                    {JSON.stringify(result, null, 2)}
-                  </pre>
-                </div>
+            <button
+              onClick={testAPI}
+              disabled={isLoading}
+              className="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+            >
+              {isLoading ? '测试中...' : '完整 API 测试'}
+            </button>
+          </div>
+        </div>
+
+        {/* 错误显示 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 max-w-2xl mx-auto">
+            <h3 className="text-red-800 font-semibold mb-2">❌ 测试失败</h3>
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
+        {/* 结果显示 */}
+        {result && (
+          <div className="bg-white rounded-lg shadow-md p-8 mb-8 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">测试结果</h2>
+
+            {/* 安全检查 */}
+            {result.questions && (
+              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
+                <h3 className="font-semibold text-yellow-800 mb-2">🔒 防泄题检查</h3>
+                {(() => {
+                  const safety = isDataSafe(result.questions);
+                  return safety.safe ? (
+                    <p className="text-green-700">✅ 通过 - 未检测到敏感字段泄露</p>
+                  ) : (
+                    <p className="text-red-700">❌ 失败 - 检测到敏感字段: {safety.field}</p>
+                  );
+                })()}
               </div>
             )}
 
-            {/* 重新开始按钮 */}
-            <button
-              onClick={handleRestart}
-              className=\"px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg\"
-            >
-              重新测试
-            </button>
+            {/* 详细数据 */}
+            <div className="bg-gray-50 p-4 rounded">
+              <h3 className="font-semibold text-gray-700 mb-2">API 响应数据</h3>
+              <pre className="text-xs text-gray-600 overflow-auto max-h-96 bg-white p-3 rounded border">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            </div>
           </div>
         )}
+
+        {/* 说明 */}
+        <div className="bg-blue-50 rounded-lg p-6 max-w-2xl mx-auto">
+          <h3 className="font-semibold text-blue-800 mb-2">📋 测试说明</h3>
+          <ul className="text-blue-700 space-y-1 text-sm">
+            <li>• <strong>题目 API</strong>: 测试 /api/placement/questions 接口</li>
+            <li>• <strong>完整测试</strong>: 测试题目和评估接口</li>
+            <li>• <strong>防泄题检查</strong>: 验证响应中不包含敏感字段</li>
+            <li>• <strong>影子模式</strong>: 当前运行在安全调试模式</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
