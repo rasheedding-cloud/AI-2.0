@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
+// 临时禁用 Google Fonts 以避免网络连接问题
+// const inter = Inter({
+//   subsets: ["latin"],
+//   variable: "--font-inter",
+//   display: "swap",
+// });
 
 export const metadata: Metadata = {
   title: "AI定制学习方案 - 个性化智能学习体验",
@@ -37,7 +37,7 @@ export default function RootLayout({
     <html
       lang="zh"
       dir="ltr"
-      className={`${inter.variable} font-sans`}
+      className="font-sans"
       suppressHydrationWarning
     >
       <head>
