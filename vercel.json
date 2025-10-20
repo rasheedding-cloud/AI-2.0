@@ -4,11 +4,14 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "rootDirectory": ".",
   "env": {
     "FEATURE_MILESTONES_V2": "true",
     "FEATURE_DYNAMIC_GATES": "true",
     "FEATURE_DYNAMIC_GATES_UI": "true",
     "NEXT_PUBLIC_FEATURE_DYNAMIC_GATES_UI": "true",
-    "FEATURE_GOAL_ASSESSOR_V2": "true"
+    "FEATURE_GOAL_ASSESSOR_V2": "true",
+    "QP_SHADOW": "true",
+    "FEATURE_QP_V1_1": "false"
   }
 }
